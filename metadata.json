@@ -1,0 +1,6 @@
+{
+  "name": "CRMComercial - Sistema de Gestión y Seguimiento de Prospectos",
+  "description": "Plataforma CRM profesional para la gestión de prospectos, pipeline comercial Kanban, control de seguimientos y análisis de conversión.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
