@@ -57,6 +57,12 @@ import {
   Database,
   CheckCircle2,
   Contact,
+  Menu,
+  Kanban,
+  LayoutDashboard,
+  Users as UsersIcon,
+  X,
+  UserCheck,
 } from 'lucide-react';
 
 interface DBState {
@@ -74,6 +80,7 @@ interface DBState {
 export default function App() {
   const [activeSection, setActiveSection] = useState<SeccionApp>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState<RolUsuario>('Administrador');
 
   // Relational Database State
@@ -90,6 +97,12 @@ export default function App() {
     historialImportaciones,
     historialExportaciones,
   } = dbState;
+
+  // Active User ID: allow selecting any colleague or administrator
+  const [currentUserId, setCurrentUserId] = useState<number>(() => {
+    const initialData = loadRelationalData();
+    return initialData.usuarios[0]?.id || 1;
+  });
 
   // Modals & Drawers State
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
@@ -116,10 +129,22 @@ export default function App() {
     saveRelationalData(dbState);
   }, [dbState]);
 
-  // Current User computed from simulated role
+  // Current User computed from simulated role or selected colleague
   const currentUserDB = useMemo(() => {
-    return usuarios.find((u) => u.rol === currentRole) || usuarios[0];
-  }, [usuarios, currentRole]);
+    return (
+      usuarios.find((u) => u.id === currentUserId) ||
+      usuarios.find((u) => u.rol === currentRole) ||
+      usuarios[0]
+    );
+  }, [usuarios, currentUserId, currentRole]);
+
+  const handleSelectUser = (userId: number) => {
+    const target = usuarios.find((u) => u.id === userId);
+    if (target) {
+      setCurrentUserId(target.id);
+      setCurrentRole(target.rol);
+    }
+  };
 
   // Adapter for UI compatibility: Prospectos Con Relaciones -> Lead format
   const prospectosAdaptados: Lead[] = useMemo(() => {
@@ -592,12 +617,133 @@ export default function App() {
     }));
   };
 
-  // Importar Prospectos masivamente desde Excel / CSV
-  const handleImportProspectos = (newProspectos: ProspectoDB[]) => {
-    setDbState((prev) => ({
-      ...prev,
-      prospectos: [...newProspectos, ...prev.prospectos],
-    }));
+  // Importar Prospectos masivamente desde Excel / CSV con lógica de Upsert (Actualizar si existe, Crear si no existe)
+  const handleImportProspectos = (incoming: ProspectoDB[]) => {
+    setDbState((prev) => {
+      let currentProspectos = [...prev.prospectos];
+      let currentContactos = [...prev.contactos];
+
+      let createdCount = 0;
+      let updatedCount = 0;
+
+      incoming.forEach((item, idx) => {
+        const itemEmail = (item.email || '').trim().toLowerCase();
+        const itemEmpresa = (item.empresa || '').trim().toLowerCase();
+        const itemFullName = `${item.nombre} ${item.apellido}`.trim().toLowerCase();
+
+        // 1. Prospectos deduplication & upsert
+        const existingProspectoIdx = currentProspectos.findIndex((p) => {
+          const pEmail = (p.email || '').trim().toLowerCase();
+          const pEmpresa = (p.empresa || '').trim().toLowerCase();
+          const pFullName = `${p.nombre} ${p.apellido}`.trim().toLowerCase();
+
+          return (
+            (itemEmail && pEmail && itemEmail === pEmail) ||
+            (itemEmpresa && pEmpresa && itemEmpresa === pEmpresa) ||
+            (itemFullName && pFullName && itemFullName === pFullName)
+          );
+        });
+
+        if (existingProspectoIdx >= 0) {
+          // Actualizar prospecto existente
+          const old = currentProspectos[existingProspectoIdx];
+          const mergedTags = Array.from(
+            new Set([
+              ...(old.etiquetas ? old.etiquetas.split(',').map((t) => t.trim()) : []),
+              ...(item.etiquetas ? item.etiquetas.split(',').map((t) => t.trim()) : []),
+            ])
+          ).join(', ');
+
+          currentProspectos[existingProspectoIdx] = {
+            ...old,
+            nombre: item.nombre || old.nombre,
+            apellido: item.apellido || old.apellido,
+            empresa: item.empresa || old.empresa,
+            cargo: item.cargo || old.cargo,
+            email: item.email || old.email,
+            telefono: item.telefono || old.telefono,
+            whatsapp: item.whatsapp || old.whatsapp || old.telefono,
+            valor_estimado: item.valor_estimado || old.valor_estimado,
+            notas: item.notas ? `${old.notas ? old.notas + ' | ' : ''}${item.notas}` : old.notas,
+            etiquetas: mergedTags,
+            ultima_interaccion: new Date().toISOString().replace('T', ' ').slice(0, 19),
+          };
+          updatedCount++;
+        } else {
+          // Crear nuevo prospecto
+          currentProspectos = [item, ...currentProspectos];
+          createdCount++;
+        }
+
+        // 2. Contactos deduplication & upsert
+        const existingContactoIdx = currentContactos.findIndex((c) => {
+          const cEmail = (c.email || '').trim().toLowerCase();
+          const cEmpresa = (c.empresa || '').trim().toLowerCase();
+          const cFullName = `${c.nombre} ${c.apellido}`.trim().toLowerCase();
+
+          return (
+            (itemEmail && cEmail && itemEmail === cEmail) ||
+            (itemEmpresa && cEmpresa && itemEmpresa === cEmpresa) ||
+            (itemFullName && cFullName && itemFullName === cFullName)
+          );
+        });
+
+        if (existingContactoIdx >= 0) {
+          const oldC = currentContactos[existingContactoIdx];
+          const mergedTags = Array.from(
+            new Set([
+              ...(oldC.etiquetas ? oldC.etiquetas.split(',').map((t) => t.trim()) : []),
+              ...(item.etiquetas ? item.etiquetas.split(',').map((t) => t.trim()) : []),
+            ])
+          ).join(', ');
+
+          currentContactos[existingContactoIdx] = {
+            ...oldC,
+            nombre: item.nombre || oldC.nombre,
+            apellido: item.apellido || oldC.apellido,
+            empresa: item.empresa || oldC.empresa,
+            cargo: item.cargo || oldC.cargo,
+            email: item.email || oldC.email,
+            telefono: item.telefono || oldC.telefono,
+            whatsapp: item.whatsapp || oldC.whatsapp || oldC.telefono,
+            etiquetas: mergedTags,
+            observaciones: item.notas ? `${oldC.observaciones ? oldC.observaciones + ' | ' : ''}${item.notas}` : oldC.observaciones,
+            ultima_interaccion: new Date().toISOString().replace('T', ' ').slice(0, 19),
+          };
+        } else {
+          const newContacto: ContactoDB = {
+            id: Date.now() + 5000 + idx,
+            nombre: item.nombre,
+            apellido: item.apellido,
+            empresa: item.empresa,
+            cargo: item.cargo || 'Encargado Comercial',
+            email: item.email || '',
+            telefono: item.telefono,
+            whatsapp: item.whatsapp || item.telefono,
+            direccion: 'Distrito Nacional / Gran Santo Domingo',
+            ciudad: 'Santo Domingo',
+            provincia: 'Distrito Nacional',
+            naturaleza_negocio: 'Comercial / Empresarial',
+            usuario_id: item.usuario_id || 1,
+            fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19),
+            ultima_interaccion: new Date().toISOString().replace('T', ' ').slice(0, 19),
+            proximo_seguimiento: item.fecha_proximo_seguimiento || null,
+            estado_comercial: 'En Proceso',
+            observaciones: item.notas || 'Contacto registrado automáticamente desde importación Excel.',
+            etiquetas: item.etiquetas || 'Cliente, ITHOT System',
+            producto_interes: 'ITHOT System',
+            modulo_interes: 'Inventario y POS',
+          };
+          currentContactos = [newContacto, ...currentContactos];
+        }
+      });
+
+      return {
+        ...prev,
+        prospectos: currentProspectos,
+        contactos: currentContactos,
+      };
+    });
   };
 
   const handleAddHistorialImportacion = (audit: HistorialImportacionDB) => {
@@ -644,7 +790,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans antialiased">
-      {/* MENÚ LATERAL IZQUIERDO FIJO */}
+      {/* MENÚ LATERAL IZQUIERDO (Escritorio y Cajón Móvil) */}
       <AppSidebar
         activeSection={activeSection}
         onSelectSection={(sec) => setActiveSection(sec)}
@@ -656,26 +802,39 @@ export default function App() {
         prospectosCount={prospectos.length}
         tareasPendientesCount={pendingTasksCount}
         onOpenAcademicModal={() => setIsAcademicModalOpen(true)}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+        allUsers={usuarios}
+        onSelectUser={handleSelectUser}
       />
 
       {/* Main Workspace Canvas */}
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-slate-950">
         {/* Top Institutional Header Bar */}
-        <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            {/* Hamburger button for Mobile */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 -ml-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Abrir menú de navegación"
+            >
+              <Menu className="w-5 h-5 text-blue-400" />
+            </button>
+
             <span className="text-blue-400 font-bold text-xs tracking-wider font-mono hidden sm:inline">
               ITHOT
             </span>
             <ChevronRight className="w-3.5 h-3.5 text-slate-600 hidden sm:inline" />
-            <h1 className="text-sm sm:text-base font-bold text-white tracking-tight truncate">
+            <h1 className="text-xs sm:text-base font-bold text-white tracking-tight truncate">
               {sectionTitles[activeSection]}
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setIsAcademicModalOpen(true)}
-              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 rounded-lg transition-colors cursor-pointer"
+              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 rounded-lg transition-colors cursor-pointer"
             >
               <GraduationCap className="w-3.5 h-3.5" />
               <span>Proyecto de Posgrado</span>
@@ -687,7 +846,7 @@ export default function App() {
                 setContactToEdit(null);
                 setIsCreateContactModalOpen(true);
               }}
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors cursor-pointer"
             >
               <Contact className="w-3.5 h-3.5 text-blue-400" />
               <span>+ Contacto</span>
@@ -699,22 +858,34 @@ export default function App() {
                 setLeadToEdit(null);
                 setIsCreateLeadModalOpen(true);
               }}
-              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              className="px-3 sm:px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ Oportunidad</span>
+              <span className="hidden xs:inline">+ Oportunidad</span>
+              <span className="xs:hidden">+ Lead</span>
             </button>
 
-            {/* Current user badge: Ing. Yenifer Sena */}
-            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-800 text-xs font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-slate-300 font-semibold">{currentUserDB.nombre}</span>
+            {/* Active User Switcher Dropdown (Allows testing colleagues and login) */}
+            <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg px-2 py-1 text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <select
+                value={currentUserDB.id}
+                onChange={(e) => handleSelectUser(Number(e.target.value))}
+                className="bg-transparent text-slate-200 text-xs font-semibold focus:outline-none cursor-pointer max-w-[110px] sm:max-w-[170px] truncate"
+                title="Cambiar usuario activo (Permite que cualquier compañero trabaje en el CRM)"
+              >
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id} className="bg-slate-900 text-white">
+                    {u.nombre} ({u.rol})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </header>
 
-        {/* Viewport Router */}
-        <main className="flex-1 overflow-y-auto bg-slate-950">
+        {/* Viewport Router with bottom padding on mobile */}
+        <main className="flex-1 overflow-y-auto bg-slate-950 pb-20 md:pb-0">
           {/* Módulo 1: Dashboard */}
           {activeSection === 'dashboard' && (
             <DashboardView
@@ -867,7 +1038,9 @@ export default function App() {
             <UsersView
               users={usuarios}
               currentRole={currentRole}
+              currentUserId={currentUserDB.id}
               onRoleChange={(r) => handleRoleChange(r)}
+              onSelectUser={handleSelectUser}
               onOpenCreateUserModal={() => {
                 setUserToEdit(null);
                 setIsCreateUserModalOpen(true);
@@ -898,6 +1071,53 @@ export default function App() {
             />
           )}
         </main>
+
+        {/* Barra de Navegación Inferior para Dispositivos Móviles */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md px-2 py-1.5 flex items-center justify-around shadow-2xl">
+          <button
+            onClick={() => setActiveSection('dashboard')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors p-1 cursor-pointer ${
+              activeSection === 'dashboard' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Inicio</span>
+          </button>
+          <button
+            onClick={() => setActiveSection('contactos')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors p-1 cursor-pointer ${
+              activeSection === 'contactos' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Contact className="w-4 h-4" />
+            <span>Contactos</span>
+          </button>
+          <button
+            onClick={() => setActiveSection('prospectos')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors p-1 cursor-pointer ${
+              activeSection === 'prospectos' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UsersIcon className="w-4 h-4" />
+            <span>Prospectos</span>
+          </button>
+          <button
+            onClick={() => setActiveSection('pipeline')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors p-1 cursor-pointer ${
+              activeSection === 'pipeline' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Kanban className="w-4 h-4" />
+            <span>Pipeline</span>
+          </button>
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="flex flex-col items-center gap-0.5 text-[10px] font-medium text-slate-400 hover:text-blue-400 transition-colors p-1 cursor-pointer"
+          >
+            <Menu className="w-4 h-4" />
+            <span>Menú</span>
+          </button>
+        </div>
       </div>
 
       {/* Contact Drawer (Ficha Técnica de Contacto) */}

@@ -199,9 +199,71 @@ export interface HistorialExportacionDB {
   hora: string;
   usuario: string;
   archivo_generado: string;
-  tipo: 'Prospectos' | 'Pipeline' | 'Seguimientos' | 'Reportes';
+  tipo: 'Contactos' | 'Prospectos' | 'Pipeline' | 'Seguimientos' | 'Reportes';
   formato: 'Excel (.xlsx)' | 'CSV (.csv)' | 'PDF (.pdf)';
   cantidad_registros: number;
+}
+
+// Módulo de Auditoría del Sistema: auditoria_sistema
+export type TipoAccionAuditoria =
+  | 'Creación'
+  | 'Actualización'
+  | 'Eliminación'
+  | 'Cambio de Etapa'
+  | 'Reasignación'
+  | 'Importación'
+  | 'Exportación'
+  | 'Restablecimiento de Contraseña'
+  | 'Activación / Desactivación'
+  | 'Inicio de Sesión';
+
+export type ModuloAfectado =
+  | 'Prospectos'
+  | 'Contactos'
+  | 'Pipeline'
+  | 'Seguimientos'
+  | 'Tareas'
+  | 'Calendario'
+  | 'Importaciones'
+  | 'Exportaciones'
+  | 'Usuarios y Roles'
+  | 'Configuración';
+
+export interface RegistroAuditoriaDB {
+  id: number;
+  usuario: string; // Nombre del usuario responsable
+  usuario_id?: number;
+  fecha: string; // YYYY-MM-DD
+  hora: string; // HH:mm:ss
+  accion: TipoAccionAuditoria;
+  modulo: ModuloAfectado;
+  registro_afectado: string; // Ej: 'Auto Repuestos Central', 'Contacto Fausto Henríquez'
+  detalles: string; // Descripción detallada de lo que cambió
+  ip_simulada?: string;
+}
+
+// Centro de Notificaciones en Tiempo Real
+export type TipoNotificacion =
+  | 'nuevo_prospecto'
+  | 'prospecto_actualizado'
+  | 'prospecto_asignado'
+  | 'nuevo_seguimiento'
+  | 'nueva_importacion'
+  | 'nuevo_usuario'
+  | 'oportunidad_movida'
+  | 'tarea_completada'
+  | 'seguridad';
+
+export interface NotificacionDB {
+  id: number;
+  titulo: string;
+  mensaje: string;
+  tipo: TipoNotificacion;
+  usuario_origen: string;
+  fecha: string; // YYYY-MM-DD
+  hora: string; // HH:mm
+  leida: boolean;
+  modulo_destino?: SeccionApp;
 }
 
 // Relational Joins for UI Views
@@ -234,5 +296,6 @@ export type SeccionApp =
   | 'importaciones'
   | 'exportaciones'
   | 'usuarios'
+  | 'auditoria'
   | 'configuracion'
   | 'documentacion';
