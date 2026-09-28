@@ -1,6 +1,6 @@
 {
-  "name": "CRMComercial - Sistema de Gestión y Seguimiento de Prospectos",
-  "description": "Plataforma CRM profesional para la gestión de prospectos, pipeline comercial Kanban, control de seguimientos y análisis de conversión.",
+  "name": "CRMComercial - Sistema CRM para Gestión de Prospectos",
+  "description": "Sistema CRM desarrollado como proyecto de posgrado. Backend Python Flask, SQLAlchemy, base de datos MySQL y frontend interactivo con arquitectura de software documentada.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

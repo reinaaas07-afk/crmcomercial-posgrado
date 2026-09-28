@@ -75,9 +75,10 @@ export const AcademicInfoModal: React.FC<AcademicInfoModalProps> = ({ isOpen, on
         </div>
 
         <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-          <span className="text-xs text-slate-400 font-mono">
-            Plataforma: <span className="text-blue-400 font-medium">CRMComercial v1.0</span>
-          </span>
+          <div className="text-xs text-slate-400 font-mono">
+            <div>Plataforma: <span className="text-blue-400 font-medium">CRMComercial v1.0</span></div>
+            <div className="text-[11px] text-slate-300 mt-0.5">Tesista / Administrador: <strong className="text-white">Ing. Yenifer Sena</strong></div>
+          </div>
           <button
             onClick={onClose}
             className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-sm"

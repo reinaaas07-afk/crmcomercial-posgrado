@@ -3,10 +3,10 @@ import { Lead, Activity, Task, User, CalendarEvent, LeadStage } from '../types/c
 export const INITIAL_USERS: User[] = [
   {
     id: 'usr-1',
-    name: 'Carlos Mendoza',
-    email: 'carlos.mendoza@crmcomercial.com',
+    name: 'Ing. Yenifer Sena',
+    email: 'yenifer.sena@universidad.edu.mx',
     role: 'Administrador',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     phone: '+52 55 1234 5678',
     activeLeadsCount: 14,
     conversionRate: 28.5,
@@ -424,7 +424,7 @@ export const INITIAL_TASKS: Task[] = [
     priority: 'Media',
     status: 'Pendiente',
     assignedTo: 'usr-1',
-    assignedToName: 'Carlos Mendoza',
+    assignedToName: 'Ing. Yenifer Sena',
     description: 'Auditar tiempos de primer contacto y cumplimiento de tareas.',
   },
   {

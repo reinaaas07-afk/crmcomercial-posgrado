@@ -31,17 +31,26 @@ export type TaskPriority = 'Alta' | 'Media' | 'Baja';
 
 export type TaskStatus = 'Pendiente' | 'En Progreso' | 'Completada';
 
-export type UserRole = 'Administrador' | 'Supervisor Comercial' | 'Asesor Comercial';
+export type UserRole =
+  | 'Administrador'
+  | 'Supervisor Comercial'
+  | 'Ejecutivo Comercial'
+  | 'Asesor Comercial'
+  | 'Consulta';
 
 export interface User {
   id: string;
   name: string;
+  apellido?: string;
   email: string;
+  username?: string;
   role: UserRole;
   avatar: string;
   phone: string;
   activeLeadsCount: number;
   conversionRate: number; // percentage e.g. 24
+  active?: boolean;
+  empresa?: string;
 }
 
 export interface Attachment {
@@ -79,11 +88,22 @@ export interface Lead {
   stage: LeadStage;
   createdAt: string; // YYYY-MM-DD
   nextFollowUpDate?: string; // YYYY-MM-DD HH:mm
-  estimatedValue: number; // in USD or local currency
+  estimatedValue: number; // in USD or RD$
   tags: string[];
   notes?: string;
   lossReason?: string;
   attachments?: Attachment[];
+  cargo?: string;
+  whatsapp?: string;
+  direccion?: string;
+  ciudad?: string;
+  provincia?: string;
+  naturaleza_negocio?: string;
+  producto_interes?: string;
+  modulo_interes?: string;
+  contacto_principal?: string;
+  ultima_interaccion?: string;
+  contactoId?: number;
 }
 
 export interface Task {
@@ -116,6 +136,7 @@ export interface CalendarEvent {
 
 export type ActiveSection =
   | 'dashboard'
+  | 'contactos'
   | 'prospectos'
   | 'pipeline'
   | 'seguimientos'
@@ -123,5 +144,8 @@ export type ActiveSection =
   | 'tareas'
   | 'reportes'
   | 'importar-exportar'
+  | 'importaciones'
+  | 'exportaciones'
   | 'usuarios'
-  | 'configuracion';
+  | 'configuracion'
+  | 'documentacion';
