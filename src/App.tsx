@@ -11,6 +11,14 @@ import {
   RolUsuario,
   HistorialImportacionDB,
   HistorialExportacionDB,
+  RegistroAuditoriaDB,
+  NotificacionDB,
+  SubcuentaDB,
+  EtiquetaConfigDB,
+  CampoPersonalizadoDB,
+  TipoAccionAuditoria,
+  ModuloAfectado,
+  TipoNotificacion,
 } from './types/schema';
 import {
   loadRelationalData,
@@ -20,10 +28,12 @@ import {
 // Types for legacy subcomponents adapter
 import { Lead, Activity, Task, User, LeadStage, UserRole } from './types/crm';
 
-// Layout: Fixed Left Sidebar & Header
+// Layout & Navigation
 import { AppSidebar } from './components/layout/AppSidebar';
+import { NotificationsDrawer } from './components/notifications/NotificationsDrawer';
 
 // Functional CRM Modules
+import { LoginView } from './components/auth/LoginView';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { ContactsView } from './components/contacts/ContactsView';
 import { LeadsView } from './components/leads/LeadsView';
@@ -35,6 +45,7 @@ import { ReportsView } from './components/reports/ReportsView';
 import { ImportsModule } from './components/import/ImportsModule';
 import { ExportsModule } from './components/export/ExportsModule';
 import { UsersView } from './components/users/UsersView';
+import { AuditView } from './components/audit/AuditView';
 import { SettingsView } from './components/settings/SettingsView';
 import { TechDocsView } from './components/docs/TechDocsView';
 
@@ -63,6 +74,9 @@ import {
   Users as UsersIcon,
   X,
   UserCheck,
+  Bell,
+  LogOut,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface DBState {
@@ -75,13 +89,24 @@ interface DBState {
   actividades: ActividadDB[];
   historialImportaciones: HistorialImportacionDB[];
   historialExportaciones: HistorialExportacionDB[];
+  subcuentas: SubcuentaDB[];
+  etiquetasConfig: EtiquetaConfigDB[];
+  camposPersonalizados: CampoPersonalizadoDB[];
+  registrosAuditoria: RegistroAuditoriaDB[];
+  notificaciones: NotificacionDB[];
 }
 
 export default function App() {
+  // Session Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return Boolean(localStorage.getItem('crm_v4_session_active'));
+  });
+
   const [activeSection, setActiveSection] = useState<SeccionApp>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentRole, setCurrentRole] = useState<RolUsuario>('Administrador');
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [currentRole, setCurrentRole] = useState<RolUsuario>('Administrador General');
 
   // Relational Database State
   const [dbState, setDbState] = useState<DBState>(() => loadRelationalData());
@@ -96,9 +121,14 @@ export default function App() {
     actividades,
     historialImportaciones,
     historialExportaciones,
+    subcuentas,
+    etiquetasConfig,
+    camposPersonalizados,
+    registrosAuditoria,
+    notificaciones,
   } = dbState;
 
-  // Active User ID: allow selecting any colleague or administrator
+  // Active User ID: defaults to Yenifer Reina Sena Suero (id: 1)
   const [currentUserId, setCurrentUserId] = useState<number>(() => {
     const initialData = loadRelationalData();
     return initialData.usuarios[0]?.id || 1;
@@ -138,12 +168,124 @@ export default function App() {
     );
   }, [usuarios, currentUserId, currentRole]);
 
+  // Centralized Audit & Notification Logger
+  const recordAuditAndNotify = (
+    accion: TipoAccionAuditoria,
+    modulo: ModuloAfectado,
+    registro: string,
+    detalles: string,
+    notifTipo?: TipoNotificacion,
+    notifTitulo?: string
+  ) => {
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().slice(0, 8);
+    const shortTimeStr = now.toTimeString().slice(0, 5);
+    const userName = currentUserDB.nombre;
+
+    const newAudit: RegistroAuditoriaDB = {
+      id: Date.now(),
+      usuario: userName,
+      usuario_id: currentUserDB.id,
+      fecha: dateStr,
+      hora: timeStr,
+      accion,
+      modulo,
+      registro_afectado: registro,
+      detalles,
+      ip_simulada: '190.167.34.12',
+    };
+
+    setDbState((prev) => {
+      let updatedNotifs = prev.notificaciones;
+      if (notifTipo) {
+        const newNotif: NotificacionDB = {
+          id: Date.now() + 1,
+          titulo: notifTitulo || `${accion} en ${modulo}`,
+          mensaje: `${userName}: ${detalles}`,
+          tipo: notifTipo,
+          usuario_origen: userName,
+          fecha: dateStr,
+          hora: shortTimeStr,
+          leida: false,
+          modulo_destino: (modulo === 'Prospectos'
+            ? 'prospectos'
+            : modulo === 'Contactos'
+            ? 'contactos'
+            : modulo === 'Pipeline'
+            ? 'pipeline'
+            : modulo === 'Importaciones'
+            ? 'importaciones'
+            : modulo === 'Usuarios y Roles'
+            ? 'usuarios'
+            : 'dashboard') as SeccionApp,
+        };
+        updatedNotifs = [newNotif, ...prev.notificaciones];
+      }
+
+      return {
+        ...prev,
+        registrosAuditoria: [newAudit, ...prev.registrosAuditoria],
+        notificaciones: updatedNotifs,
+      };
+    });
+  };
+
   const handleSelectUser = (userId: number) => {
     const target = usuarios.find((u) => u.id === userId);
     if (target) {
       setCurrentUserId(target.id);
       setCurrentRole(target.rol);
     }
+  };
+
+  // Auth Handlers
+  const handleLogin = (user: UsuarioDB) => {
+    setCurrentUserId(user.id);
+    setCurrentRole(user.rol);
+    setIsAuthenticated(true);
+    localStorage.setItem('crm_v4_session_active', 'true');
+    recordAuditAndNotify(
+      'Inicio de Sesión',
+      'Usuarios y Roles',
+      user.nombre,
+      `Inició sesión en el sistema CRMComercial como ${user.rol}.`
+    );
+  };
+
+  const handleLogout = () => {
+    recordAuditAndNotify(
+      'Actualización',
+      'Usuarios y Roles',
+      currentUserDB.nombre,
+      `Cerró sesión en el sistema.`
+    );
+    setIsAuthenticated(false);
+    localStorage.removeItem('crm_v4_session_active');
+  };
+
+  // Notification Handlers
+  const handleMarkAsRead = (id: number) => {
+    setDbState((prev) => ({
+      ...prev,
+      notificaciones: prev.notificaciones.map((n) =>
+        n.id === id ? { ...n, leida: true } : n
+      ),
+    }));
+  };
+
+  const handleMarkAllAsRead = () => {
+    setDbState((prev) => ({
+      ...prev,
+      notificaciones: prev.notificaciones.map((n) => ({ ...n, leida: true })),
+    }));
+  };
+
+  const handleClearRead = () => {
+    setDbState((prev) => ({
+      ...prev,
+      notificaciones: prev.notificaciones.filter((n) => !n.leida),
+    }));
   };
 
   // Adapter for UI compatibility: Prospectos Con Relaciones -> Lead format
@@ -159,7 +301,7 @@ export default function App() {
       phone: p.telefono || '',
       source: p.fuente as any,
       assignedTo: `usr-${p.usuario_id}`,
-      assignedToName: usuariosMap.get(p.usuario_id) || 'Ing. Yenifer Sena',
+      assignedToName: usuariosMap.get(p.usuario_id) || 'Yenifer Reina Sena Suero',
       stage: (etapasMap.get(p.etapa_id) || 'Nuevo Lead') as LeadStage,
       createdAt: p.fecha_registro.split(' ')[0],
       nextFollowUpDate: p.fecha_proximo_seguimiento || undefined,
@@ -192,7 +334,7 @@ export default function App() {
       date: s.fecha_hora.split(' ')[0],
       time: s.fecha_hora.split(' ')[1]?.slice(0, 5) || '12:00',
       userId: `usr-${s.usuario_id}`,
-      userName: usuariosMap.get(s.usuario_id) || 'Ing. Yenifer Sena',
+      userName: usuariosMap.get(s.usuario_id) || 'Yenifer Reina Sena Suero',
       result: (s.resultado.includes('Exitoso') ? 'Exitoso' : s.resultado.includes('Interesado') ? 'Interesado' : s.resultado.includes('Sin Respuesta') ? 'Sin respuesta' : s.resultado.includes('Ocupado') ? 'Ocupado' : 'Reagendado') as any,
       notes: s.observaciones,
       nextAction: s.proxima_accion || undefined,
@@ -208,145 +350,128 @@ export default function App() {
     return tareas.map((t) => ({
       id: `tsk-${t.id}`,
       title: t.titulo,
-      leadId: t.prospecto_id ? String(t.prospecto_id) : undefined,
-      leadName: t.prospecto_id ? prospectosMap.get(t.prospecto_id) : undefined,
-      dueDate: t.fecha_limite,
-      dueTime: t.hora_limite || undefined,
-      priority: t.prioridad,
-      status: t.estado as any,
+      leadId: t.prospecto_id ? String(t.prospecto_id) : '',
+      leadName: t.prospecto_id ? (prospectosMap.get(t.prospecto_id) || 'General ITHOT') : 'General ITHOT',
       assignedTo: `usr-${t.usuario_id}`,
-      assignedToName: usuariosMap.get(t.usuario_id) || 'Ing. Yenifer Sena',
-      description: t.descripcion || undefined,
+      assignedToName: usuariosMap.get(t.usuario_id) || 'Yenifer Reina Sena Suero',
+      dueDate: t.fecha_limite,
+      dueTime: t.hora_limite || '17:00',
+      priority: t.prioridad as any,
+      status: (t.estado === 'Pendiente' ? 'Pendiente' : t.estado === 'En Progreso' ? 'En Progreso' : 'Completada') as any,
+      description: t.descripcion,
     }));
   }, [tareas, prospectos, usuarios]);
 
-  // Adapter for Users format
-  const usuariosAdaptados: User[] = useMemo(() => {
-    return usuarios.map((u) => {
-      const uProspectos = prospectos.filter((p) => p.usuario_id === u.id);
-      const uGanados = uProspectos.filter((p) => p.etapa_id === 7).length;
-      const rate = uProspectos.length > 0 ? (uGanados / uProspectos.length) * 100 : 0;
+  // Current User in legacy format
+  const currentUserAdaptado: User = useMemo(() => ({
+    id: `usr-${currentUserDB.id}`,
+    name: currentUserDB.nombre,
+    email: currentUserDB.email,
+    role: currentUserDB.rol as UserRole,
+    avatar: '',
+    phone: currentUserDB.telefono,
+    activeLeadsCount: prospectos.filter((p) => p.usuario_id === currentUserDB.id).length,
+    conversionRate: 28,
+  }), [currentUserDB, prospectos]);
 
-      return {
-        id: `usr-${u.id}`,
-        name: u.nombre,
-        email: u.email,
-        role: u.rol as UserRole,
-        avatar: '',
-        phone: u.telefono,
-        activeLeadsCount: uProspectos.length,
-        conversionRate: Number(rate.toFixed(1)),
-        active: u.activo,
-        empresa: u.empresa || 'ITHOT',
-      };
-    });
+  const usuariosAdaptados: User[] = useMemo(() => {
+    return usuarios.map((u) => ({
+      id: `usr-${u.id}`,
+      name: u.nombre,
+      email: u.email,
+      role: u.rol as UserRole,
+      avatar: '',
+      phone: u.telefono,
+      activeLeadsCount: prospectos.filter((p) => p.usuario_id === u.id).length,
+      conversionRate: 25,
+    }));
   }, [usuarios, prospectos]);
 
-  const currentUserAdaptado: User = useMemo(() => {
-    return usuariosAdaptados.find((u) => u.role === currentRole) || usuariosAdaptados[0];
-  }, [usuariosAdaptados, currentRole]);
-
-  // Selected Lead for Drawer
-  const selectedLeadAdapted = useMemo(() => {
+  // Selected Lead Adapted
+  const selectedLeadAdapted: Lead | null = useMemo(() => {
     if (!selectedLeadId) return null;
     return prospectosAdaptados.find((p) => p.id === String(selectedLeadId)) || null;
   }, [selectedLeadId, prospectosAdaptados]);
 
-  // HANDLERS RELACIONALES (LIVE DATABASE MUTATIONS & REAL INTERCONNECTIONS)
-  const handleRoleChange = (newRole: RolUsuario) => {
-    setCurrentRole(newRole);
-  };
-
+  // Drawer handlers
   const handleOpenLeadDrawer = (lead: Lead) => {
     setSelectedLeadId(Number(lead.id));
     setIsLeadDrawerOpen(true);
   };
 
-  const handleSelectLeadById = (leadIdStr: string) => {
-    const numId = Number(leadIdStr.replace('lead-', ''));
-    setSelectedLeadId(numId);
-    setIsLeadDrawerOpen(true);
+  const handleRoleChange = (newRole: RolUsuario) => {
+    setCurrentRole(newRole);
+    const matched = usuarios.find((u) => u.rol === newRole);
+    if (matched) {
+      setCurrentUserId(matched.id);
+    }
   };
 
-  // Guardar Contacto (INSERT o UPDATE en 'contactos' con sincronización en cascada a prospectos y empresa)
+  // Contacts Handlers (CREATE / UPDATE)
   const handleSaveContact = (contactData: ContactoDB) => {
+    const isNew = !dbState.contactos.some((c) => c.id === contactData.id);
     setDbState((prev) => {
-      const isNew = !prev.contactos.some((c) => c.id === contactData.id);
-      const updatedContactos = isNew
+      const updated = isNew
         ? [contactData, ...prev.contactos]
         : prev.contactos.map((c) => (c.id === contactData.id ? contactData : c));
-
-      // Sincronizar en cascada hacia prospectos si coinciden por contacto_id o nombre de empresa
-      const updatedProspectos = prev.prospectos.map((p) => {
-        const isMatched =
-          (p.contacto_id && p.contacto_id === contactData.id) ||
-          p.empresa.toLowerCase() === contactData.empresa.toLowerCase();
-
-        if (isMatched) {
-          return {
-            ...p,
-            nombre: contactData.nombre,
-            apellido: contactData.apellido,
-            empresa: contactData.empresa,
-            cargo: contactData.cargo || p.cargo,
-            email: contactData.email || p.email,
-            telefono: contactData.telefono || p.telefono,
-            whatsapp: contactData.whatsapp || p.whatsapp,
-            ciudad: contactData.ciudad || p.ciudad,
-            provincia: contactData.provincia || p.provincia,
-            naturaleza_negocio: contactData.naturaleza_negocio || p.naturaleza_negocio,
-            producto_interes: contactData.producto_interes || p.producto_interes,
-            modulo_interes: contactData.modulo_interes || p.modulo_interes,
-            usuario_id: contactData.usuario_id || p.usuario_id,
-          };
-        }
-        return p;
-      });
-
-      return {
-        ...prev,
-        contactos: updatedContactos,
-        prospectos: updatedProspectos,
-      };
+      return { ...prev, contactos: updated };
     });
+
+    recordAuditAndNotify(
+      isNew ? 'Creación' : 'Actualización',
+      'Contactos',
+      `${contactData.nombre} ${contactData.apellido} (${contactData.empresa})`,
+      `${isNew ? 'Creó' : 'Actualizó'} los datos de contacto y empresa en el directorio.`,
+      isNew ? 'nuevo_prospecto' : 'prospecto_actualizado',
+      isNew ? 'Nuevo contacto registrado' : 'Contacto actualizado'
+    );
   };
 
-  // Eliminar Contacto
+  // Delete Contact
   const handleDeleteContact = (contactId: number) => {
+    const target = contactos.find((c) => c.id === contactId);
     setDbState((prev) => ({
       ...prev,
       contactos: prev.contactos.filter((c) => c.id !== contactId),
     }));
+
     if (selectedContact?.id === contactId) {
-      setSelectedContact(null);
       setIsContactDrawerOpen(false);
+      setSelectedContact(null);
     }
+
+    recordAuditAndNotify(
+      'Eliminación',
+      'Contactos',
+      target ? `${target.nombre} ${target.apellido} (${target.empresa})` : `Contacto #${contactId}`,
+      `Eliminó el contacto de la base de datos.`
+    );
   };
 
-  // Convertir Contacto en Oportunidad de Pipeline
+  // Convert Contact into Pipeline Opportunity
   const handleConvertToOpportunity = (contact: ContactoDB) => {
-    const newId = prospectos.length > 0 ? Math.max(...prospectos.map((p) => p.id)) + 1 : 101;
-    const newProspecto: ProspectoDB = {
-      id: newId,
+    const defaultEtapa = etapas[0] || { id: 1, nombre: 'Nuevo Lead' };
+    const newLead: ProspectoDB = {
+      id: Date.now(),
       nombre: contact.nombre,
       apellido: contact.apellido,
       empresa: contact.empresa,
       cargo: contact.cargo,
       email: contact.email,
       telefono: contact.telefono,
-      whatsapp: contact.whatsapp || contact.telefono,
+      whatsapp: contact.whatsapp,
       fuente: 'Referido',
-      etapa_id: 1, // Nuevo Lead
+      etapa_id: defaultEtapa.id,
       usuario_id: contact.usuario_id || currentUserDB.id,
-      valor_estimado: 240000,
+      valor_estimado: 120000,
       fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19),
-      fecha_proximo_seguimiento: contact.proximo_seguimiento || new Date(Date.now() + 86400000 * 2).toISOString().replace('T', ' ').slice(0, 16),
-      notas: `Oportunidad generada desde el contacto ${contact.nombre} ${contact.apellido}. ${contact.observaciones || ''}`,
-      etiquetas: contact.etiquetas || 'Prospecto, ITHOT System',
+      fecha_proximo_seguimiento: new Date(Date.now() + 86400000 * 2).toISOString().replace('T', ' ').slice(0, 16),
+      notas: `Oportunidad generada a partir del contacto corporativo. Interés en ${contact.producto_interes || 'ITHOT System'}.`,
+      etiquetas: contact.etiquetas || 'ITHOT System, Facturación Electrónica',
       contacto_id: contact.id,
       naturaleza_negocio: contact.naturaleza_negocio,
-      producto_interes: contact.producto_interes || 'ITHOT System',
-      modulo_interes: contact.modulo_interes || 'Inventario',
+      producto_interes: contact.producto_interes,
+      modulo_interes: contact.modulo_interes,
       direccion: contact.direccion,
       ciudad: contact.ciudad,
       provincia: contact.provincia,
@@ -355,47 +480,56 @@ export default function App() {
 
     setDbState((prev) => ({
       ...prev,
-      prospectos: [newProspecto, ...prev.prospectos],
+      prospectos: [newLead, ...prev.prospectos],
+      contactos: prev.contactos.map((c) =>
+        c.id === contact.id ? { ...c, estado_comercial: 'En Negociación' } : c
+      ),
     }));
+
+    recordAuditAndNotify(
+      'Creación',
+      'Pipeline',
+      `${contact.empresa} - ${contact.nombre}`,
+      `Convirtió el contacto en oportunidad comercial activa en el Pipeline Kanban.`,
+      'nuevo_prospecto',
+      'Oportunidad generada desde Contactos'
+    );
 
     setActiveSection('pipeline');
   };
 
-  // Guardar Prospecto (INSERT o UPDATE en la tabla 'prospectos' con sincronización recíproca a contactos)
-  const handleSaveLead = (leadData: Lead) => {
-    const rawId = Number(leadData.id.replace('lead-', ''));
-    const isNew = isNaN(rawId) || !prospectos.some((p) => p.id === rawId);
-
+  // Prospectos Handlers (INSERT / UPDATE)
+  const handleSaveLead = (leadData: Partial<Lead>) => {
+    const isNew = !leadData.id;
+    const rawId = isNew ? Date.now() : Number(leadData.id);
+    const targetUserId = leadData.assignedTo
+      ? Number(leadData.assignedTo.replace('usr-', ''))
+      : currentUserDB.id;
     const targetEtapa = etapas.find((e) => e.nombre === leadData.stage) || etapas[0];
-    const targetUserId = Number(leadData.assignedTo.replace('usr-', '')) || currentUserDB.id;
-
-    const parts = leadData.name.split(' ');
-    const nombre = parts[0] || leadData.name;
-    const apellido = parts.slice(1).join(' ') || '';
+    const [nombre, ...apellidoParts] = (leadData.name || 'Nuevo Prospecto').split(' ');
+    const apellido = apellidoParts.join(' ');
 
     setDbState((prev) => {
       let updatedProspectos: ProspectoDB[];
-
       if (isNew) {
-        const newId = prev.prospectos.length > 0 ? Math.max(...prev.prospectos.map((p) => p.id)) + 1 : 101;
         const newProspecto: ProspectoDB = {
-          id: newId,
+          id: rawId,
           nombre,
           apellido,
-          empresa: leadData.company,
+          empresa: leadData.company || 'Empresa Dominicana',
           cargo: (leadData as any).cargo || 'Gerente General',
-          email: leadData.email,
-          telefono: leadData.phone,
-          whatsapp: (leadData as any).whatsapp || leadData.phone,
-          fuente: leadData.source,
+          email: leadData.email || '',
+          telefono: leadData.phone || '+1 809-567-0000',
+          whatsapp: (leadData as any).whatsapp || leadData.phone || '+1 829-000-0000',
+          fuente: leadData.source || 'Sitio Web',
           etapa_id: targetEtapa.id,
           usuario_id: targetUserId,
           valor_estimado: leadData.estimatedValue || 0,
           fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19),
           fecha_proximo_seguimiento: leadData.nextFollowUpDate || null,
           notas: leadData.notes || '',
-          etiquetas: leadData.tags.join(', '),
-          naturaleza_negocio: (leadData as any).naturaleza_negocio || 'Comercio Mayorista / Retail',
+          etiquetas: (leadData.tags || []).join(', ') || 'Prospecto, ITHOT System',
+          naturaleza_negocio: (leadData as any).naturaleza_negocio || 'Comercial / Empresarial',
           producto_interes: (leadData as any).producto_interes || 'ITHOT System',
           modulo_interes: (leadData as any).modulo_interes || 'Inventario',
           ciudad: (leadData as any).ciudad || 'Santo Domingo',
@@ -410,18 +544,18 @@ export default function App() {
                 ...p,
                 nombre,
                 apellido,
-                empresa: leadData.company,
+                empresa: leadData.company || p.empresa,
                 cargo: (leadData as any).cargo || p.cargo,
-                email: leadData.email,
-                telefono: leadData.phone,
+                email: leadData.email || p.email,
+                telefono: leadData.phone || p.telefono,
                 whatsapp: (leadData as any).whatsapp || p.whatsapp,
-                fuente: leadData.source,
+                fuente: leadData.source || p.fuente,
                 etapa_id: targetEtapa.id,
                 usuario_id: targetUserId,
-                valor_estimado: leadData.estimatedValue || 0,
+                valor_estimado: leadData.estimatedValue || p.valor_estimado,
                 fecha_proximo_seguimiento: leadData.nextFollowUpDate || null,
-                notas: leadData.notes || '',
-                etiquetas: leadData.tags.join(', '),
+                notas: leadData.notes || p.notas,
+                etiquetas: (leadData.tags || []).join(', ') || p.etiquetas,
                 naturaleza_negocio: (leadData as any).naturaleza_negocio || p.naturaleza_negocio,
                 producto_interes: (leadData as any).producto_interes || p.producto_interes,
                 modulo_interes: (leadData as any).modulo_interes || p.modulo_interes,
@@ -435,10 +569,10 @@ export default function App() {
 
       // Sincronizar hacia Contactos si la empresa coincide
       const updatedContactos = prev.contactos.map((c) => {
-        if (c.empresa.toLowerCase() === leadData.company.toLowerCase()) {
+        if (c.empresa.toLowerCase() === (leadData.company || '').toLowerCase()) {
           return {
             ...c,
-            empresa: leadData.company,
+            empresa: leadData.company || c.empresa,
             usuario_id: targetUserId,
             telefono: leadData.phone || c.telefono,
             whatsapp: (leadData as any).whatsapp || c.whatsapp,
@@ -454,11 +588,22 @@ export default function App() {
         contactos: updatedContactos,
       };
     });
+
+    recordAuditAndNotify(
+      isNew ? 'Creación' : 'Actualización',
+      'Prospectos',
+      leadData.company || 'Oportunidad ITHOT',
+      `${isNew ? 'Creó' : 'Actualizó'} la oportunidad comercial por RD$ ${(leadData.estimatedValue || 0).toLocaleString()}.`,
+      isNew ? 'nuevo_prospecto' : 'prospecto_actualizado',
+      isNew ? 'Nueva oportunidad comercial' : 'Oportunidad actualizada'
+    );
   };
 
   // Eliminar Prospecto (DELETE con CASCADE)
   const handleDeleteLead = (leadIdStr: string) => {
     const rawId = Number(leadIdStr.replace('lead-', ''));
+    const target = prospectos.find((p) => p.id === rawId);
+
     setDbState((prev) => ({
       ...prev,
       prospectos: prev.prospectos.filter((p) => p.id !== rawId),
@@ -471,6 +616,13 @@ export default function App() {
       setIsLeadDrawerOpen(false);
       setSelectedLeadId(null);
     }
+
+    recordAuditAndNotify(
+      'Eliminación',
+      'Prospectos',
+      target?.empresa || `Prospecto #${rawId}`,
+      `Eliminó la oportunidad comercial y sus seguimientos asociados.`
+    );
   };
 
   // Mover Etapa en Pipeline Kanban
@@ -479,10 +631,10 @@ export default function App() {
     const targetEtapa = etapas.find((e) => e.nombre === newStageName);
     if (!targetEtapa) return;
 
-    setDbState((prev) => {
-      const currentLead = prev.prospectos.find((p) => p.id === rawId);
-      if (!currentLead || currentLead.etapa_id === targetEtapa.id) return prev;
+    const currentLead = prospectos.find((p) => p.id === rawId);
+    if (!currentLead || currentLead.etapa_id === targetEtapa.id) return;
 
+    setDbState((prev) => {
       const auditSeguimiento: SeguimientoDB = {
         id: prev.seguimientos.length > 0 ? Math.max(...prev.seguimientos.map((s) => s.id)) + 1 : 1,
         prospecto_id: rawId,
@@ -504,6 +656,15 @@ export default function App() {
         seguimientos: [auditSeguimiento, ...prev.seguimientos],
       };
     });
+
+    recordAuditAndNotify(
+      'Cambio de Etapa',
+      'Pipeline',
+      currentLead.empresa,
+      `Movió la oportunidad a la etapa "${targetEtapa.nombre}".`,
+      'oportunidad_movida',
+      'Oportunidad avanzada de etapa'
+    );
   };
 
   // Guardar Seguimiento
@@ -531,36 +692,56 @@ export default function App() {
         p.id === rawLeadId
           ? {
               ...p,
-              fecha_proximo_seguimiento: activityData.nextFollowUpDate || p.fecha_proximo_seguimiento,
               ultima_interaccion: `${activityData.date} ${activityData.time}:00`,
+              fecha_proximo_seguimiento: activityData.nextFollowUpDate || p.fecha_proximo_seguimiento,
             }
           : p
       ),
     }));
+
+    recordAuditAndNotify(
+      'Creación',
+      'Seguimientos',
+      activityData.leadName,
+      `Registró seguimiento (${activityData.type}) con resultado: ${activityData.result}.`,
+      'nuevo_seguimiento',
+      'Nuevo seguimiento registrado'
+    );
   };
 
   // Guardar Tarea
-  const handleSaveTask = (newTaskData: Task) => {
-    const rawLeadId = newTaskData.leadId ? Number(newTaskData.leadId.replace('lead-', '')) : null;
-    const newTaskId = tareas.length > 0 ? Math.max(...tareas.map((t) => t.id)) + 1 : 1;
+  const handleSaveTask = (taskData: Partial<Task>) => {
+    const isNew = !taskData.id;
+    const rawId = isNew ? Date.now() : Number(taskData.id?.replace('tsk-', ''));
+    const rawLeadId = taskData.leadId ? Number(taskData.leadId.replace('lead-', '')) : null;
+    const targetUserId = taskData.assignedTo ? Number(taskData.assignedTo.replace('usr-', '')) : currentUserDB.id;
 
-    const newTarea: TareaDB = {
-      id: newTaskId,
+    const newTask: TareaDB = {
+      id: rawId,
+      titulo: taskData.title || 'Nueva Tarea',
+      descripcion: taskData.description || '',
       prospecto_id: rawLeadId,
-      usuario_id: currentUserDB.id,
-      titulo: newTaskData.title,
-      descripcion: newTaskData.description || '',
-      prioridad: newTaskData.priority,
-      estado: newTaskData.status as any,
-      fecha_limite: newTaskData.dueDate,
-      hora_limite: newTaskData.dueTime || null,
+      usuario_id: targetUserId,
+      fecha_limite: taskData.dueDate || new Date().toISOString().split('T')[0],
+      hora_limite: taskData.dueTime || '17:00',
+      prioridad: (taskData.priority || 'Media') as any,
+      estado: (taskData.status || 'Pendiente') as any,
       fecha_creacion: new Date().toISOString().replace('T', ' ').slice(0, 19),
     };
 
-    setDbState((prev) => ({
-      ...prev,
-      tareas: [newTarea, ...prev.tareas],
-    }));
+    setDbState((prev) => {
+      const updated = isNew
+        ? [newTask, ...prev.tareas]
+        : prev.tareas.map((t) => (t.id === rawId ? newTask : t));
+      return { ...prev, tareas: updated };
+    });
+
+    recordAuditAndNotify(
+      isNew ? 'Creación' : 'Actualización',
+      'Tareas',
+      newTask.titulo,
+      `${isNew ? 'Programó' : 'Actualizó'} tarea con prioridad ${newTask.prioridad}.`
+    );
   };
 
   const handleToggleTaskStatus = (taskIdStr: string) => {
@@ -569,7 +750,11 @@ export default function App() {
       ...prev,
       tareas: prev.tareas.map((t) =>
         t.id === rawId
-          ? { ...t, estado: t.estado === 'Completada' ? 'Pendiente' : 'Completada' }
+          ? {
+              ...t,
+              estado: t.estado === 'Completada' ? 'Pendiente' : 'Completada',
+              fecha_completada: t.estado === 'Completada' ? null : new Date().toISOString().replace('T', ' ').slice(0, 19),
+            }
           : t
       ),
     }));
@@ -583,10 +768,10 @@ export default function App() {
     }));
   };
 
-  // User Management Handlers (Yenifer Sena as Administrator)
+  // User Management Handlers (Administradora General Yenifer Reina Sena Suero)
   const handleSaveUser = (userData: UsuarioDB) => {
+    const isNew = !dbState.usuarios.some((u) => u.id === userData.id);
     setDbState((prev) => {
-      const isNew = !prev.usuarios.some((u) => u.id === userData.id);
       const updated = isNew
         ? [...prev.usuarios, userData]
         : prev.usuarios.map((u) => (u.id === userData.id ? userData : u));
@@ -595,29 +780,103 @@ export default function App() {
         usuarios: updated,
       };
     });
+
+    recordAuditAndNotify(
+      isNew ? 'Creación' : 'Actualización',
+      'Usuarios y Roles',
+      userData.nombre,
+      `${isNew ? 'Creó nuevo usuario' : 'Actualizó datos de usuario'} con rol: ${userData.rol}.`,
+      isNew ? 'nuevo_usuario' : undefined,
+      isNew ? 'Nuevo usuario incorporado' : undefined
+    );
   };
 
   const handleDeleteUser = (userId: number) => {
     if (userId === 1) {
-      alert('No es posible eliminar al Administrador principal (Ing. Yenifer Sena).');
+      alert('No es posible eliminar al Administrador General (Yenifer Reina Sena Suero).');
       return;
     }
+    const target = usuarios.find((u) => u.id === userId);
     setDbState((prev) => ({
       ...prev,
       usuarios: prev.usuarios.filter((u) => u.id !== userId),
     }));
+
+    recordAuditAndNotify(
+      'Eliminación',
+      'Usuarios y Roles',
+      target?.nombre || `Usuario #${userId}`,
+      `Eliminó al usuario de la plataforma comercial.`
+    );
   };
 
   const handleToggleUserStatus = (userId: number) => {
+    const target = usuarios.find((u) => u.id === userId);
+    const newStatus = !target?.activo;
+
     setDbState((prev) => ({
       ...prev,
       usuarios: prev.usuarios.map((u) =>
         u.id === userId ? { ...u, activo: !u.activo } : u
       ),
     }));
+
+    recordAuditAndNotify(
+      'Activación / Desactivación',
+      'Usuarios y Roles',
+      target?.nombre || `Usuario #${userId}`,
+      `Cambió el estado del usuario a: ${newStatus ? 'Activo' : 'Inactivo'}.`
+    );
   };
 
-  // Importar Prospectos masivamente desde Excel / CSV con lógica de Upsert (Actualizar si existe, Crear si no existe)
+  const handleResetPassword = (userId: number, newPassword: string) => {
+    const target = usuarios.find((u) => u.id === userId);
+    setDbState((prev) => ({
+      ...prev,
+      usuarios: prev.usuarios.map((u) =>
+        u.id === userId ? { ...u, password_plain: newPassword, password_hash: '$2b$12$ITHOT_UPDATED...' } : u
+      ),
+    }));
+
+    recordAuditAndNotify(
+      'Restablecimiento de Contraseña',
+      'Usuarios y Roles',
+      target?.nombre || `Usuario #${userId}`,
+      `Restableció la contraseña de acceso al CRM.`
+    );
+  };
+
+  const handleSaveBatchUsers = (newUsers: UsuarioDB[]) => {
+    setDbState((prev) => ({
+      ...prev,
+      usuarios: [...prev.usuarios, ...newUsers],
+    }));
+
+    recordAuditAndNotify(
+      'Creación',
+      'Usuarios y Roles',
+      `Lote de ${newUsers.length} Usuarios`,
+      `Creó ${newUsers.length} usuarios comerciales para la empresa ITHOT.`,
+      'nuevo_usuario',
+      'Nuevos usuarios creados'
+    );
+  };
+
+  const handleCreateSubcuenta = (newSub: SubcuentaDB) => {
+    setDbState((prev) => ({
+      ...prev,
+      subcuentas: [...prev.subcuentas, newSub],
+    }));
+
+    recordAuditAndNotify(
+      'Creación',
+      'Configuración',
+      newSub.nombre,
+      `Creó nueva subcuenta/sucursal: ${newSub.nombre} (${newSub.codigo}).`
+    );
+  };
+
+  // Importar Prospectos masivamente desde Excel / CSV con Upsert y Deduplicación
   const handleImportProspectos = (incoming: ProspectoDB[]) => {
     setDbState((prev) => {
       let currentProspectos = [...prev.prospectos];
@@ -645,7 +904,6 @@ export default function App() {
         });
 
         if (existingProspectoIdx >= 0) {
-          // Actualizar prospecto existente
           const old = currentProspectos[existingProspectoIdx];
           const mergedTags = Array.from(
             new Set([
@@ -670,7 +928,6 @@ export default function App() {
           };
           updatedCount++;
         } else {
-          // Crear nuevo prospecto
           currentProspectos = [item, ...currentProspectos];
           createdCount++;
         }
@@ -744,6 +1001,15 @@ export default function App() {
         contactos: currentContactos,
       };
     });
+
+    recordAuditAndNotify(
+      'Importación',
+      'Importaciones',
+      `Lote de ${incoming.length} registros`,
+      `Procesó archivo Excel con actualización automática y deduplicación.`,
+      'nueva_importacion',
+      'Importación masiva completada'
+    );
   };
 
   const handleAddHistorialImportacion = (audit: HistorialImportacionDB) => {
@@ -758,12 +1024,19 @@ export default function App() {
       ...prev,
       historialExportaciones: [audit, ...prev.historialExportaciones],
     }));
+
+    recordAuditAndNotify(
+      'Exportación',
+      'Exportaciones',
+      audit.archivo_generado,
+      `Exportó datos (${audit.tipo}) en formato ${audit.formato}.`
+    );
   };
 
   const handleResetDemoData = () => {
     localStorage.clear();
     setDbState(loadRelationalData());
-    setCurrentRole('Administrador');
+    setCurrentRole('Administrador General');
     setSelectedLeadId(null);
     setIsLeadDrawerOpen(false);
     setSelectedContact(null);
@@ -771,6 +1044,7 @@ export default function App() {
   };
 
   const pendingTasksCount = tareas.filter((t) => t.estado === 'Pendiente').length;
+  const unreadNotifsCount = notificaciones.filter((n) => !n.leida).length;
 
   const sectionTitles: Record<SeccionApp, string> = {
     dashboard: 'Dashboard Principal',
@@ -783,10 +1057,16 @@ export default function App() {
     reportes: 'Módulo de Reportes y Analítica',
     importaciones: 'Módulo Independiente de Importaciones (Excel / CSV)',
     exportaciones: 'Módulo Independiente de Exportaciones',
-    usuarios: 'Gestión de Usuarios y Roles (RBAC)',
+    usuarios: 'Gestión de Usuarios, Subcuentas y Roles (RBAC)',
+    auditoria: 'Auditoría del Sistema y Registro de Actividad',
     configuracion: 'Configuración del Sistema',
     documentacion: 'Documentación Técnica y Arquitectura de Software',
   };
+
+  // IF NOT AUTHENTICATED: Display Professional Login Screen
+  if (!isAuthenticated) {
+    return <LoginView users={usuarios} onLogin={handleLogin} />;
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans antialiased">
@@ -806,6 +1086,7 @@ export default function App() {
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         allUsers={usuarios}
         onSelectUser={handleSelectUser}
+        onLogout={handleLogout}
       />
 
       {/* Main Workspace Canvas */}
@@ -865,6 +1146,20 @@ export default function App() {
               <span className="xs:hidden">+ Lead</span>
             </button>
 
+            {/* Notifications Bell */}
+            <button
+              onClick={() => setIsNotificationsOpen(true)}
+              className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Centro de Notificaciones en Tiempo Real"
+            >
+              <Bell className="w-4 h-4" />
+              {unreadNotifsCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center font-mono">
+                  {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
+                </span>
+              )}
+            </button>
+
             {/* Active User Switcher Dropdown (Allows testing colleagues and login) */}
             <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg px-2 py-1 text-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
@@ -881,6 +1176,15 @@ export default function App() {
                 ))}
               </select>
             </div>
+
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer hidden sm:flex items-center"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
@@ -904,7 +1208,7 @@ export default function App() {
             />
           )}
 
-          {/* Módulo 2: Contactos (NUEVO) */}
+          {/* Módulo 2: Contactos */}
           {activeSection === 'contactos' && (
             <ContactsView
               contacts={contactos}
@@ -950,13 +1254,13 @@ export default function App() {
             />
           )}
 
-          {/* Módulo 4: Pipeline Comercial */}
+          {/* Módulo 4: Pipeline Comercial Kanban */}
           {activeSection === 'pipeline' && (
             <PipelineView
               leads={prospectosAdaptados}
               users={usuariosAdaptados}
-              onUpdateLeadStage={handleUpdateLeadStage}
               onSelectLead={handleOpenLeadDrawer}
+              onUpdateLeadStage={handleUpdateLeadStage}
               onOpenCreateModal={() => {
                 setLeadToEdit(null);
                 setIsCreateLeadModalOpen(true);
@@ -971,7 +1275,10 @@ export default function App() {
               leads={prospectosAdaptados}
               users={usuariosAdaptados}
               onOpenCreateActivityModal={() => setIsCreateActivityModalOpen(true)}
-              onSelectLeadById={handleSelectLeadById}
+              onSelectLeadById={(leadId) => {
+                setSelectedLeadId(Number(leadId));
+                setIsLeadDrawerOpen(true);
+              }}
             />
           )}
 
@@ -981,20 +1288,26 @@ export default function App() {
               tasks={tareasAdaptadas}
               leads={prospectosAdaptados}
               users={usuariosAdaptados}
+              onOpenCreateTaskModal={() => setIsCreateTaskModalOpen(true)}
               onToggleTaskStatus={handleToggleTaskStatus}
               onDeleteTask={handleDeleteTask}
-              onOpenCreateTaskModal={() => setIsCreateTaskModalOpen(true)}
-              onSelectLeadById={handleSelectLeadById}
+              onSelectLeadById={(leadId) => {
+                setSelectedLeadId(Number(leadId));
+                setIsLeadDrawerOpen(true);
+              }}
             />
           )}
 
           {/* Módulo 7: Calendario */}
           {activeSection === 'calendario' && (
             <CalendarView
-              users={usuariosAdaptados}
               leads={prospectosAdaptados}
-              onSelectLeadById={handleSelectLeadById}
+              users={usuariosAdaptados}
               onOpenCreateActivityModal={() => setIsCreateActivityModalOpen(true)}
+              onSelectLeadById={(leadId) => {
+                setSelectedLeadId(Number(leadId));
+                setIsLeadDrawerOpen(true);
+              }}
             />
           )}
 
@@ -1039,6 +1352,7 @@ export default function App() {
               users={usuarios}
               currentRole={currentRole}
               currentUserId={currentUserDB.id}
+              subcuentas={subcuentas}
               onRoleChange={(r) => handleRoleChange(r)}
               onSelectUser={handleSelectUser}
               onOpenCreateUserModal={() => {
@@ -1051,12 +1365,37 @@ export default function App() {
               }}
               onDeleteUser={handleDeleteUser}
               onToggleUserStatus={handleToggleUserStatus}
+              onResetPassword={handleResetPassword}
+              onSaveBatchUsers={handleSaveBatchUsers}
+              onCreateSubcuenta={handleCreateSubcuenta}
             />
+          )}
+
+          {/* Módulo: Auditoría del Sistema */}
+          {activeSection === 'auditoria' && (
+            <AuditView auditLogs={registrosAuditoria} />
           )}
 
           {/* Módulo 12: Configuración */}
           {activeSection === 'configuracion' && (
-            <SettingsView onResetDemoData={handleResetDemoData} />
+            <SettingsView
+              users={usuarios}
+              subcuentas={subcuentas}
+              etiquetasConfig={etiquetasConfig}
+              camposPersonalizados={camposPersonalizados}
+              onUpdateEtiquetas={(tags) =>
+                setDbState((prev) => ({ ...prev, etiquetasConfig: tags }))
+              }
+              onUpdateCampos={(campos) =>
+                setDbState((prev) => ({ ...prev, camposPersonalizados: campos }))
+              }
+              onOpenCreateUserModal={() => {
+                setUserToEdit(null);
+                setIsCreateUserModalOpen(true);
+              }}
+              onNavigateSection={(sec) => setActiveSection(sec)}
+              onResetDemoData={handleResetDemoData}
+            />
           )}
 
           {/* Módulo 13: Documentación Técnica */}
@@ -1119,6 +1458,17 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {/* Notifications Drawer */}
+      <NotificationsDrawer
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        notifications={notificaciones}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onClearRead={handleClearRead}
+        onNavigateSection={(sec) => setActiveSection(sec)}
+      />
 
       {/* Contact Drawer (Ficha Técnica de Contacto) */}
       <ContactDrawer
@@ -1201,7 +1551,7 @@ export default function App() {
         defaultAssignedUserId={currentUserAdaptado.id}
       />
 
-      {/* Modal: Crear / Editar Usuario (Administradora Yenifer Sena) */}
+      {/* Modal: Crear / Editar Usuario (Administradora General Yenifer Reina Sena Suero) */}
       <CreateUserModal
         isOpen={isCreateUserModalOpen}
         onClose={() => {

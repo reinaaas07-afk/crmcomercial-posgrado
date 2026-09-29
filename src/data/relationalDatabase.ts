@@ -8,74 +8,78 @@ import {
   ActividadDB,
   HistorialImportacionDB,
   HistorialExportacionDB,
+  RegistroAuditoriaDB,
+  NotificacionDB,
+  SubcuentaDB,
+  EtiquetaConfigDB,
+  CampoPersonalizadoDB,
 } from '../types/schema';
 
-// Usuarios del Sistema ITHOT - CRMComercial
+// Usuarios Oficiales del Sistema ITHOT - CRMComercial
 export const INITIAL_USUARIOS: UsuarioDB[] = [
   {
     id: 1,
-    nombre: 'Ing. Yenifer Sena',
-    apellido: 'Sena',
+    nombre: 'Yenifer Reina Sena Suero',
+    apellido: 'Sena Suero',
     email: 'yenifer.sena@ithot.com.do',
     usuario: 'ysena',
     password_hash: '$2b$12$e8Yk2uR1vN4QhO.WkX3yxe... (bcrypt)',
-    rol: 'Administrador',
+    password_plain: 'ITHOT2026*',
+    rol: 'Administrador General',
     telefono: '+1 809-567-8900',
     activo: true,
     fecha_creacion: '2026-09-01 08:00:00',
+    ultimo_acceso: '2026-09-29 08:30:00',
     empresa: 'ITHOT',
+    subcuenta: 'ITHOT Sede Principal',
   },
   {
     id: 2,
-    nombre: 'Lic. Valeria Rojas',
-    apellido: 'Rojas',
-    email: 'valeria.rojas@ithot.com.do',
-    usuario: 'vrojas',
+    nombre: 'Armando Montes de Oca Hesni',
+    apellido: 'Montes de Oca Hesni',
+    email: 'armando.montes@ithot.com.do',
+    usuario: 'amontes',
     password_hash: '$2b$12$K8J91uP1vN4QhO.WkX8yxe... (bcrypt)',
+    password_plain: 'Montes2026*',
     rol: 'Supervisor Comercial',
     telefono: '+1 829-876-5432',
     activo: true,
     fecha_creacion: '2026-09-01 08:30:00',
+    ultimo_acceso: '2026-09-29 08:15:00',
     empresa: 'ITHOT',
+    subcuenta: 'ITHOT Sede Principal',
   },
   {
     id: 3,
-    nombre: 'Mateo Silva',
-    apellido: 'Silva',
-    email: 'mateo.silva@ithot.com.do',
-    usuario: 'msilva',
+    nombre: 'Felix Manuel Robles',
+    apellido: 'Robles',
+    email: 'felix.robles@ithot.com.do',
+    usuario: 'frobles',
     password_hash: '$2b$12$Z1Q23uR1vN4QhO.WkX3yxe... (bcrypt)',
+    password_plain: 'Robles2026*',
     rol: 'Ejecutivo Comercial',
     telefono: '+1 849-987-6543',
     activo: true,
     fecha_creacion: '2026-09-02 09:00:00',
+    ultimo_acceso: '2026-09-29 07:50:00',
     empresa: 'ITHOT',
+    subcuenta: 'ITHOT Sede Principal',
   },
   {
     id: 4,
-    nombre: 'Camila Herrera',
-    apellido: 'Herrera',
-    email: 'camila.herrera@ithot.com.do',
-    usuario: 'cherrera',
+    nombre: 'Ana Julia Alcántara',
+    apellido: 'Alcántara',
+    email: 'ana.alcantara@ithot.com.do',
+    usuario: 'aalcantara',
     password_hash: '$2b$12$P4N56uR1vN4QhO.WkX3yxe... (bcrypt)',
-    rol: 'Ejecutivo Comercial',
+    password_plain: 'Alcantara2026*',
+    rol: 'Analista Comercial',
     telefono: '+1 809-456-7890',
     activo: true,
     fecha_creacion: '2026-09-02 09:30:00',
+    ultimo_acceso: '2026-09-28 17:30:00',
     empresa: 'ITHOT',
-  },
-  {
-    id: 5,
-    nombre: 'Lic. Carlos Méndez',
-    apellido: 'Méndez',
-    email: 'carlos.mendez@ithot.com.do',
-    usuario: 'cmendez',
-    password_hash: '$2b$12$Q9L78uR1vN4QhO.WkX3yxe... (bcrypt)',
-    rol: 'Consulta',
-    telefono: '+1 809-234-5678',
-    activo: true,
-    fecha_creacion: '2026-09-10 10:00:00',
-    empresa: 'ITHOT',
+    subcuenta: 'ITHOT Sede Principal',
   },
 ];
 
@@ -823,7 +827,7 @@ export const INITIAL_HISTORIAL_EXPORTACIONES: HistorialExportacionDB[] = [
     id: 1,
     fecha: '2026-09-28',
     hora: '08:00',
-    usuario: 'Ing. Yenifer Sena',
+    usuario: 'Yenifer Reina Sena Suero',
     archivo_generado: 'informe_ejecutivo_ithot_crm.pdf',
     tipo: 'Reportes',
     formato: 'PDF (.pdf)',
@@ -831,7 +835,214 @@ export const INITIAL_HISTORIAL_EXPORTACIONES: HistorialExportacionDB[] = [
   },
 ];
 
-const STORAGE_PREFIX = 'crm_v3_ithot_';
+// Subcuentas / Sucursales corporativas de ITHOT
+export const INITIAL_SUBCUENTAS: SubcuentaDB[] = [
+  {
+    id: 1,
+    nombre: 'ITHOT Sede Principal',
+    empresa_matriz: 'ITHOT',
+    codigo: 'ITH-SDQ-01',
+    responsable: 'Yenifer Reina Sena Suero',
+    direccion: 'Av. Winston Churchill #1099, Torre Acrópolis, Nivel 14',
+    ciudad: 'Santo Domingo',
+    telefono: '+1 809-567-8900',
+    usuarios_count: 4,
+    fecha_creacion: '2026-01-15 09:00:00',
+    activa: true,
+  },
+  {
+    id: 2,
+    nombre: 'ITHOT Sucursal Cibao',
+    empresa_matriz: 'ITHOT',
+    codigo: 'ITH-STI-02',
+    responsable: 'Armando Montes de Oca Hesni',
+    direccion: 'Av. Juan Pablo Duarte esq. Estrella Sadhalá',
+    ciudad: 'Santiago de los Caballeros',
+    telefono: '+1 809-582-4411',
+    usuarios_count: 2,
+    fecha_creacion: '2026-03-20 10:30:00',
+    activa: true,
+  },
+  {
+    id: 3,
+    nombre: 'ITHOT Sucursal Este (Turística)',
+    empresa_matriz: 'ITHOT',
+    codigo: 'ITH-PC-03',
+    responsable: 'Felix Manuel Robles',
+    direccion: 'Boulevard Primero de Noviembre, Punta Cana Village',
+    ciudad: 'Punta Cana',
+    telefono: '+1 809-959-2222',
+    usuarios_count: 1,
+    fecha_creacion: '2026-06-10 11:00:00',
+    activa: true,
+  },
+];
+
+// Catálogo de Etiquetas Configurables de ITHOT
+export const INITIAL_ETIQUETAS_CONFIG: EtiquetaConfigDB[] = [
+  { id: 1, nombre: 'Cliente', color: '#10b981', categoria: 'Estado', activa: true },
+  { id: 2, nombre: 'Prospecto', color: '#3b82f6', categoria: 'Estado', activa: true },
+  { id: 3, nombre: 'Cliente Activo', color: '#059669', categoria: 'Estado', activa: true },
+  { id: 4, nombre: 'Cliente Inactivo', color: '#ef4444', categoria: 'Estado', activa: true },
+  { id: 5, nombre: 'ITHOT System', color: '#6366f1', categoria: 'Producto', activa: true },
+  { id: 6, nombre: 'POS Digital', color: '#8b5cf6', categoria: 'Producto', activa: true },
+  { id: 7, nombre: 'Facturación Electrónica', color: '#06b6d4', categoria: 'Fiscal DGII', activa: true },
+  { id: 8, nombre: 'CRM Comercial', color: '#ec4899', categoria: 'Producto', activa: true },
+  { id: 9, nombre: 'Inventario', color: '#f59e0b', categoria: 'Módulo', activa: true },
+  { id: 10, nombre: 'Compras', color: '#84cc16', categoria: 'Módulo', activa: true },
+  { id: 11, nombre: 'Ventas', color: '#14b8a6', categoria: 'Módulo', activa: true },
+  { id: 12, nombre: 'Caja', color: '#f97316', categoria: 'Módulo', activa: true },
+  { id: 13, nombre: 'Contabilidad', color: '#64748b', categoria: 'Módulo', activa: true },
+  { id: 14, nombre: 'Cuentas por Cobrar', color: '#eab308', categoria: 'Módulo', activa: true },
+  { id: 15, nombre: 'Cuentas por Pagar', color: '#f43f5e', categoria: 'Módulo', activa: true },
+  { id: 16, nombre: 'Reportes Gerenciales', color: '#a855f7', categoria: 'Módulo', activa: true },
+];
+
+// Campos Personalizados Configurables
+export const INITIAL_CAMPOS_PERSONALIZADOS: CampoPersonalizadoDB[] = [
+  {
+    id: 1,
+    modulo: 'Ambos',
+    nombre_campo: 'rnc_cedula',
+    etiqueta: 'RNC / Cédula DGII',
+    tipo: 'Texto',
+    requerido: false,
+    activo: true,
+  },
+  {
+    id: 2,
+    modulo: 'Prospectos',
+    nombre_campo: 'probabilidad_cierre',
+    etiqueta: 'Probabilidad de Cierre (%)',
+    tipo: 'Número',
+    requerido: false,
+    activo: true,
+  },
+  {
+    id: 3,
+    modulo: 'Contactos',
+    nombre_campo: 'sector_economico',
+    etiqueta: 'Sector Económico',
+    tipo: 'Selección',
+    opciones: ['Comercio Retail', 'Construcción y Ferretería', 'Farmacéutico', 'Hotelero / Gastronómico', 'Servicios Profesionales', 'Industrial'],
+    requerido: false,
+    activo: true,
+  },
+];
+
+// Registros Iniciales de Auditoría del Sistema
+export const INITIAL_REGISTROS_AUDITORIA: RegistroAuditoriaDB[] = [
+  {
+    id: 1,
+    usuario: 'Yenifer Reina Sena Suero',
+    usuario_id: 1,
+    fecha: '2026-09-29',
+    hora: '08:35:12',
+    accion: 'Creación',
+    modulo: 'Prospectos',
+    registro_afectado: 'Ferretería & Maderas del Ozama',
+    detalles: 'Registró nueva oportunidad comercial para ITHOT System y Facturación Electrónica por RD$ 480,000.',
+    ip_simulada: '190.167.34.12',
+  },
+  {
+    id: 2,
+    usuario: 'Felix Manuel Robles',
+    usuario_id: 3,
+    fecha: '2026-09-29',
+    hora: '08:12:44',
+    accion: 'Actualización',
+    modulo: 'Contactos',
+    registro_afectado: 'Fausto Henríquez (Supermercados El Conde)',
+    detalles: 'Actualizó teléfono directo y agregó nota sobre evaluación de 12 terminales POS Digital.',
+    ip_simulada: '190.167.34.15',
+  },
+  {
+    id: 3,
+    usuario: 'Armando Montes de Oca Hesni',
+    usuario_id: 2,
+    fecha: '2026-09-29',
+    hora: '07:45:00',
+    accion: 'Cambio de Etapa',
+    modulo: 'Pipeline',
+    registro_afectado: 'Repuestos & Talleres Cibao',
+    detalles: 'Movió la oportunidad de la etapa "Propuesta Enviada" a "Negociación".',
+    ip_simulada: '190.167.34.18',
+  },
+  {
+    id: 4,
+    usuario: 'Ana Julia Alcántara',
+    usuario_id: 4,
+    fecha: '2026-09-28',
+    hora: '17:20:10',
+    accion: 'Importación',
+    modulo: 'Importaciones',
+    registro_afectado: 'lote_empresas_industriales_rd.xlsx',
+    detalles: 'Importó exitosamente 15 empresas dominicanas con deduplicación y sincronización de contactos.',
+    ip_simulada: '190.167.34.22',
+  },
+  {
+    id: 5,
+    usuario: 'Yenifer Reina Sena Suero',
+    usuario_id: 1,
+    fecha: '2026-09-28',
+    hora: '16:00:25',
+    accion: 'Creación',
+    modulo: 'Usuarios y Roles',
+    registro_afectado: 'Ana Julia Alcántara (Analista Comercial)',
+    detalles: 'Creó y activó usuario para Ana Julia Alcántara bajo la subcuenta ITHOT Sede Principal.',
+    ip_simulada: '190.167.34.12',
+  },
+];
+
+// Notificaciones del Sistema en Tiempo Real
+export const INITIAL_NOTIFICACIONES: NotificacionDB[] = [
+  {
+    id: 1,
+    titulo: 'Nuevo prospecto creado',
+    mensaje: 'Yenifer Reina Sena Suero creó la oportunidad "Ferretería & Maderas del Ozama" (RD$ 480,000).',
+    tipo: 'nuevo_prospecto',
+    usuario_origen: 'Yenifer Reina Sena Suero',
+    fecha: '2026-09-29',
+    hora: '08:35',
+    leida: false,
+    modulo_destino: 'prospectos',
+  },
+  {
+    id: 2,
+    titulo: 'Oportunidad movida de etapa',
+    mensaje: 'Armando Montes de Oca movió "Repuestos & Talleres Cibao" a la etapa Negociación.',
+    tipo: 'oportunidad_movida',
+    usuario_origen: 'Armando Montes de Oca Hesni',
+    fecha: '2026-09-29',
+    hora: '07:45',
+    leida: false,
+    modulo_destino: 'pipeline',
+  },
+  {
+    id: 3,
+    titulo: 'Contacto actualizado',
+    mensaje: 'Felix Manuel Robles actualizó los datos comerciales de Fausto Henríquez.',
+    tipo: 'prospecto_actualizado',
+    usuario_origen: 'Felix Manuel Robles',
+    fecha: '2026-09-29',
+    hora: '08:12',
+    leida: false,
+    modulo_destino: 'contactos',
+  },
+  {
+    id: 4,
+    titulo: 'Nueva importación realizada',
+    mensaje: 'Ana Julia Alcántara importó 15 empresas desde archivo Excel con actualización de registros.',
+    tipo: 'nueva_importacion',
+    usuario_origen: 'Ana Julia Alcántara',
+    fecha: '2026-09-28',
+    hora: '17:20',
+    leida: true,
+    modulo_destino: 'importaciones',
+  },
+];
+
+const STORAGE_PREFIX = 'crm_v4_ithot_';
 
 export function loadRelationalData(): {
   usuarios: UsuarioDB[];
@@ -843,6 +1054,11 @@ export function loadRelationalData(): {
   actividades: ActividadDB[];
   historialImportaciones: HistorialImportacionDB[];
   historialExportaciones: HistorialExportacionDB[];
+  subcuentas: SubcuentaDB[];
+  etiquetasConfig: EtiquetaConfigDB[];
+  camposPersonalizados: CampoPersonalizadoDB[];
+  registrosAuditoria: RegistroAuditoriaDB[];
+  notificaciones: NotificacionDB[];
 } {
   try {
     const rawUsuarios = localStorage.getItem(STORAGE_PREFIX + 'usuarios');
@@ -854,20 +1070,23 @@ export function loadRelationalData(): {
     const rawActividades = localStorage.getItem(STORAGE_PREFIX + 'actividades');
     const rawImportaciones = localStorage.getItem(STORAGE_PREFIX + 'importaciones');
     const rawExportaciones = localStorage.getItem(STORAGE_PREFIX + 'exportaciones');
+    const rawSubcuentas = localStorage.getItem(STORAGE_PREFIX + 'subcuentas');
+    const rawEtiquetasConfig = localStorage.getItem(STORAGE_PREFIX + 'etiquetas_config');
+    const rawCamposPersonalizados = localStorage.getItem(STORAGE_PREFIX + 'campos_personalizados');
+    const rawAuditoria = localStorage.getItem(STORAGE_PREFIX + 'auditoria');
+    const rawNotificaciones = localStorage.getItem(STORAGE_PREFIX + 'notificaciones');
 
     let loadedUsuarios: UsuarioDB[] = rawUsuarios ? JSON.parse(rawUsuarios) : INITIAL_USUARIOS;
-    // Guarantee Administrator is Ing. Yenifer Sena
-    loadedUsuarios = loadedUsuarios.map((u) =>
-      u.id === 1 || u.rol === 'Administrador'
-        ? {
-            ...u,
-            nombre: 'Ing. Yenifer Sena',
-            email: 'yenifer.sena@ithot.com.do',
-            empresa: 'ITHOT',
-            rol: 'Administrador',
-          }
-        : u
-    );
+
+    // Asegurar que los 4 usuarios corporativos requeridos siempre estén presentes
+    const hasYenifer = loadedUsuarios.some((u) => u.nombre.includes('Yenifer'));
+    const hasFelix = loadedUsuarios.some((u) => u.nombre.includes('Felix') || u.nombre.includes('Félix'));
+    const hasArmando = loadedUsuarios.some((u) => u.nombre.includes('Armando'));
+    const hasAna = loadedUsuarios.some((u) => u.nombre.includes('Ana Julia'));
+
+    if (!hasYenifer || !hasFelix || !hasArmando || !hasAna) {
+      loadedUsuarios = INITIAL_USUARIOS;
+    }
 
     return {
       usuarios: loadedUsuarios,
@@ -879,6 +1098,11 @@ export function loadRelationalData(): {
       actividades: rawActividades ? JSON.parse(rawActividades) : INITIAL_ACTIVIDADES,
       historialImportaciones: rawImportaciones ? JSON.parse(rawImportaciones) : INITIAL_HISTORIAL_IMPORTACIONES,
       historialExportaciones: rawExportaciones ? JSON.parse(rawExportaciones) : INITIAL_HISTORIAL_EXPORTACIONES,
+      subcuentas: rawSubcuentas ? JSON.parse(rawSubcuentas) : INITIAL_SUBCUENTAS,
+      etiquetasConfig: rawEtiquetasConfig ? JSON.parse(rawEtiquetasConfig) : INITIAL_ETIQUETAS_CONFIG,
+      camposPersonalizados: rawCamposPersonalizados ? JSON.parse(rawCamposPersonalizados) : INITIAL_CAMPOS_PERSONALIZADOS,
+      registrosAuditoria: rawAuditoria ? JSON.parse(rawAuditoria) : INITIAL_REGISTROS_AUDITORIA,
+      notificaciones: rawNotificaciones ? JSON.parse(rawNotificaciones) : INITIAL_NOTIFICACIONES,
     };
   } catch (e) {
     console.error('Error cargando datos relacionales', e);
@@ -892,6 +1116,11 @@ export function loadRelationalData(): {
       actividades: INITIAL_ACTIVIDADES,
       historialImportaciones: INITIAL_HISTORIAL_IMPORTACIONES,
       historialExportaciones: INITIAL_HISTORIAL_EXPORTACIONES,
+      subcuentas: INITIAL_SUBCUENTAS,
+      etiquetasConfig: INITIAL_ETIQUETAS_CONFIG,
+      camposPersonalizados: INITIAL_CAMPOS_PERSONALIZADOS,
+      registrosAuditoria: INITIAL_REGISTROS_AUDITORIA,
+      notificaciones: INITIAL_NOTIFICACIONES,
     };
   }
 }
@@ -906,6 +1135,11 @@ export function saveRelationalData(data: {
   actividades: ActividadDB[];
   historialImportaciones: HistorialImportacionDB[];
   historialExportaciones: HistorialExportacionDB[];
+  subcuentas: SubcuentaDB[];
+  etiquetasConfig: EtiquetaConfigDB[];
+  camposPersonalizados: CampoPersonalizadoDB[];
+  registrosAuditoria: RegistroAuditoriaDB[];
+  notificaciones: NotificacionDB[];
 }) {
   try {
     localStorage.setItem(STORAGE_PREFIX + 'usuarios', JSON.stringify(data.usuarios));
@@ -917,6 +1151,11 @@ export function saveRelationalData(data: {
     localStorage.setItem(STORAGE_PREFIX + 'actividades', JSON.stringify(data.actividades));
     localStorage.setItem(STORAGE_PREFIX + 'importaciones', JSON.stringify(data.historialImportaciones));
     localStorage.setItem(STORAGE_PREFIX + 'exportaciones', JSON.stringify(data.historialExportaciones));
+    localStorage.setItem(STORAGE_PREFIX + 'subcuentas', JSON.stringify(data.subcuentas));
+    localStorage.setItem(STORAGE_PREFIX + 'etiquetas_config', JSON.stringify(data.etiquetasConfig));
+    localStorage.setItem(STORAGE_PREFIX + 'campos_personalizados', JSON.stringify(data.camposPersonalizados));
+    localStorage.setItem(STORAGE_PREFIX + 'auditoria', JSON.stringify(data.registrosAuditoria));
+    localStorage.setItem(STORAGE_PREFIX + 'notificaciones', JSON.stringify(data.notificaciones));
   } catch (e) {
     console.error('Error persistiendo datos relacionales', e);
   }

@@ -19,6 +19,8 @@ import {
   GraduationCap,
   X,
   UserCheck,
+  ShieldAlert,
+  LogOut,
 } from 'lucide-react';
 import { SeccionApp, UsuarioDB, RolUsuario } from '../../types/schema';
 
@@ -37,6 +39,7 @@ interface AppSidebarProps {
   onCloseMobile?: () => void;
   allUsers?: UsuarioDB[];
   onSelectUser?: (userId: number) => void;
+  onLogout?: () => void;
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
@@ -54,6 +57,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onCloseMobile,
   allUsers = [],
   onSelectUser,
+  onLogout,
 }) => {
   const menuItems: {
     id: SeccionApp;
@@ -72,6 +76,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { id: 'importaciones', label: 'Importaciones', icon: FileUp },
     { id: 'exportaciones', label: 'Exportaciones', icon: FileDown },
     { id: 'usuarios', label: 'Usuarios y Roles', icon: ShieldCheck, badge: allUsers.length || undefined },
+    { id: 'auditoria', label: 'Auditoría del Sistema', icon: ShieldAlert },
     { id: 'configuracion', label: 'Configuración', icon: Settings },
     { id: 'documentacion', label: 'Documentación Técnica', icon: BookOpen },
   ];
@@ -201,21 +206,35 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             )}
           </div>
 
-          {/* Quick Colleague Switcher Dropdown */}
+          {/* Quick Colleague Switcher Dropdown & Logout */}
           {(!collapsed || isMobile) && allUsers.length > 1 && onSelectUser && (
-            <div className="mt-2 pt-2 border-t border-slate-800/60">
-              <label className="text-[10px] text-slate-400 block mb-1">Cambiar Usuario Activo:</label>
-              <select
-                value={currentUser.id}
-                onChange={(e) => onSelectUser(Number(e.target.value))}
-                className="w-full text-[11px] bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
-              >
-                {allUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.nombre} ({u.rol})
-                  </option>
-                ))}
-              </select>
+            <div className="mt-2 pt-2 border-t border-slate-800/60 space-y-2">
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Cambiar Usuario Activo:</label>
+                <select
+                  value={currentUser.id}
+                  onChange={(e) => onSelectUser(Number(e.target.value))}
+                  className="w-full text-[11px] bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  {allUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre} ({u.rol})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="w-full py-1 px-2 rounded-lg bg-slate-800/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700/60 hover:border-rose-500/40 text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Cerrar sesión actual"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Cerrar Sesión</span>
+                </button>
+              )}
             </div>
           )}
         </div>

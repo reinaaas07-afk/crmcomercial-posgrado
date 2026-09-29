@@ -5,9 +5,11 @@
  */
 
 export type RolUsuario =
+  | 'Administrador General'
   | 'Administrador'
   | 'Supervisor Comercial'
   | 'Ejecutivo Comercial'
+  | 'Analista Comercial'
   | 'Asesor Comercial'
   | 'Consulta';
 
@@ -22,12 +24,49 @@ export const CATALOGO_ETIQUETAS = [
   'CRM Comercial',
   'Inventario',
   'Compras',
-  'Cuentas por Cobrar',
+  'Ventas',
+  'Caja',
   'Contabilidad',
+  'Cuentas por Cobrar',
+  'Cuentas por Pagar',
   'Reportes Gerenciales',
 ] as const;
 
 export type EtiquetaSugerida = (typeof CATALOGO_ETIQUETAS)[number];
+
+export interface EtiquetaConfigDB {
+  id: number;
+  nombre: string;
+  color: string;
+  categoria: string;
+  descripcion?: string;
+  activa: boolean;
+}
+
+export interface CampoPersonalizadoDB {
+  id: number;
+  modulo: 'Contactos' | 'Prospectos' | 'Ambos';
+  nombre_campo: string;
+  etiqueta: string;
+  tipo: 'Texto' | 'Número' | 'Fecha' | 'Selección' | 'Moneda';
+  opciones?: string[];
+  requerido: boolean;
+  activo: boolean;
+}
+
+export interface SubcuentaDB {
+  id: number;
+  nombre: string;
+  empresa_matriz: string; // 'ITHOT'
+  codigo: string;
+  responsable: string;
+  direccion: string;
+  ciudad: string;
+  telefono: string;
+  usuarios_count: number;
+  fecha_creacion: string;
+  activa: boolean;
+}
 
 export type CanalSeguimiento =
   | 'Llamada'
@@ -64,13 +103,17 @@ export interface UsuarioDB {
   nombre: string;
   apellido?: string;
   email: string;
-  usuario?: string;
+  usuario: string;
   password_hash: string;
+  password_plain?: string; // Visible para demostración y restablecimiento
   rol: RolUsuario;
   telefono: string;
   activo: boolean;
   fecha_creacion: string; // YYYY-MM-DD HH:mm:ss
-  empresa?: string;
+  ultimo_acceso?: string;
+  empresa: string; // 'ITHOT'
+  subcuenta?: string; // Ej: 'ITHOT Principal - Santo Domingo'
+  permisos_personalizados?: string[];
 }
 
 // Tabla: contactos (Módulo Independiente de Empresas y Personas)

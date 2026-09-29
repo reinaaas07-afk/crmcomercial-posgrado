@@ -32,6 +32,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const [telefono, setTelefono] = useState('+1 809-');
   const [password, setPassword] = useState('ITHOT2026*');
   const [rol, setRol] = useState<RolUsuario>('Ejecutivo Comercial');
+  const [subcuenta, setSubcuenta] = useState('ITHOT Sede Principal');
   const [activo, setActivo] = useState(true);
   const [empresa, setEmpresa] = useState('ITHOT');
 
@@ -42,8 +43,9 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       setEmail(userToEdit.email || '');
       setUsuario(userToEdit.usuario || '');
       setTelefono(userToEdit.telefono || '+1 809-');
-      setPassword('••••••••');
+      setPassword(userToEdit.password_plain || '••••••••');
       setRol(userToEdit.rol || 'Ejecutivo Comercial');
+      setSubcuenta(userToEdit.subcuenta || 'ITHOT Sede Principal');
       setActivo(userToEdit.activo ?? true);
       setEmpresa(userToEdit.empresa || 'ITHOT');
     } else {
@@ -54,6 +56,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       setTelefono('+1 809-');
       setPassword('ITHOT2026*');
       setRol('Ejecutivo Comercial');
+      setSubcuenta('ITHOT Sede Principal');
       setActivo(true);
       setEmpresa('ITHOT');
     }
@@ -75,11 +78,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       email: email.trim(),
       usuario: usuario.trim() || email.split('@')[0],
       password_hash: '$2b$12$ITHOT_BCRYPT_SECURE_HASH...',
+      password_plain: password || 'ITHOT2026*',
       rol,
       telefono: telefono.trim(),
       activo,
       fecha_creacion: userToEdit?.fecha_creacion || new Date().toISOString().replace('T', ' ').slice(0, 19),
+      ultimo_acceso: userToEdit?.ultimo_acceso || new Date().toISOString().replace('T', ' ').slice(0, 19),
       empresa,
+      subcuenta,
     };
 
     onSaveUser(newUser);
@@ -213,9 +219,11 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 onChange={(e) => setRol(e.target.value as RolUsuario)}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500"
               >
+                <option value="Administrador General">Administrador General</option>
                 <option value="Administrador">Administrador</option>
                 <option value="Supervisor Comercial">Supervisor Comercial</option>
                 <option value="Ejecutivo Comercial">Ejecutivo Comercial</option>
+                <option value="Analista Comercial">Analista Comercial</option>
                 <option value="Consulta">Consulta</option>
               </select>
             </div>
@@ -235,16 +243,33 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </div>
           </div>
 
-          <div className="pt-2">
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Empresa
-            </label>
-            <input
-              type="text"
-              value={empresa}
-              readOnly
-              className="w-full px-3 py-2 bg-slate-950/70 border border-slate-800 rounded-lg text-xs text-slate-400 font-bold focus:outline-none"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Subcuenta Asignada (ITHOT)
+              </label>
+              <select
+                value={subcuenta}
+                onChange={(e) => setSubcuenta(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="ITHOT Sede Principal">ITHOT Sede Principal (Santo Domingo)</option>
+                <option value="ITHOT Sucursal Cibao">ITHOT Sucursal Cibao (Santiago)</option>
+                <option value="ITHOT Sucursal Este (Turística)">ITHOT Sucursal Este (Punta Cana)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Empresa Matriz
+              </label>
+              <input
+                type="text"
+                value={empresa}
+                readOnly
+                className="w-full px-3 py-2 bg-slate-950/70 border border-slate-800 rounded-lg text-xs text-slate-400 font-bold focus:outline-none"
+              />
+            </div>
           </div>
 
           {/* Footer Actions */}
