@@ -109,11 +109,83 @@ export interface UsuarioDB {
   rol: RolUsuario;
   telefono: string;
   activo: boolean;
+  online?: boolean; // Estado en línea / desconectado
   fecha_creacion: string; // YYYY-MM-DD HH:mm:ss
   ultimo_acceso?: string;
+  ultimo_cierre?: string;
   empresa: string; // 'ITHOT'
   subcuenta?: string; // Ej: 'ITHOT Principal - Santo Domingo'
   permisos_personalizados?: string[];
+}
+
+// Tabla: empresas (Módulo Empresas Comerciales)
+export interface EmpresaDB {
+  id: number;
+  razon_social: string;
+  rnc: string;
+  telefono: string;
+  email: string;
+  direccion: string;
+  ciudad: string;
+  sector: string;
+  sitio_web: string;
+  industria: string;
+  cantidad_empleados: number;
+  usuario_id: number; // Foreign Key -> usuarios.id (Responsable comercial)
+  etiquetas: string; // Comma-separated
+  notas: string;
+  fecha_registro: string;
+  estado: 'Activa' | 'Prospecto' | 'Inactiva' | 'Lead';
+}
+
+// Tabla: comentarios (Notas y Trazabilidad por Entidad)
+export interface ComentarioDB {
+  id: number;
+  entidad_tipo: 'empresa' | 'contacto' | 'prospecto' | 'oportunidad';
+  entidad_id: number;
+  usuario_nombre: string;
+  usuario_id: number;
+  texto: string;
+  fecha_hora: string;
+}
+
+// Tabla: adjuntos (Documentos adjuntos por Entidad)
+export interface AdjuntoDB {
+  id: number;
+  entidad_tipo: 'empresa' | 'contacto' | 'prospecto' | 'oportunidad';
+  entidad_id: number;
+  nombre_archivo: string;
+  tipo_archivo: 'PDF' | 'Excel' | 'Word' | 'Imagen' | 'Otro';
+  tamano_kb: number;
+  usuario_nombre: string;
+  fecha_subida: string;
+  url_data?: string;
+}
+
+// Tabla: objetivos (Metas Comerciales Mensuales)
+export interface ObjetivoComercialDB {
+  id: number;
+  titulo: string;
+  tipo: 'Prospectos' | 'Ventas' | 'Llamadas' | 'Cierres';
+  meta_cantidad: number;
+  unidad: string; // 'prospectos', 'RD$', 'llamadas'
+  periodo: string; // Ej: 'Septiembre 2026'
+  usuario_id: number | null; // null = Meta Global Empresa
+  responsable: string;
+  avance_actual: number;
+  fecha_limite: string;
+}
+
+// Tabla: papelera (Soft delete para restauración segura)
+export interface RegistroPapeleraDB {
+  id: number;
+  entidad_tipo: 'Empresa' | 'Contacto' | 'Prospecto' | 'Tarea' | 'Seguimiento';
+  entidad_id: number;
+  titulo: string;
+  detalles: string;
+  datos_json: string;
+  usuario_elimino: string;
+  fecha_eliminacion: string;
 }
 
 // Tabla: contactos (Módulo Independiente de Empresas y Personas)
@@ -329,12 +401,16 @@ export interface TareaConRelaciones extends TareaDB {
 
 export type SeccionApp =
   | 'dashboard'
+  | 'empresas'
   | 'contactos'
   | 'prospectos'
   | 'pipeline'
   | 'seguimientos'
   | 'tareas'
   | 'calendario'
+  | 'objetivos'
+  | 'papelera'
+  | 'actividad'
   | 'reportes'
   | 'importaciones'
   | 'exportaciones'

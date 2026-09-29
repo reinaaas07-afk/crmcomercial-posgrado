@@ -194,9 +194,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
           {/* Quick Access for Corporate Team */}
           <div className="mt-6 pt-5 border-t border-slate-800">
             <span className="text-[11px] font-semibold text-slate-400 block mb-2.5 uppercase tracking-wider text-center">
-              Acceso Rápido por Rol (Empresa ITHOT)
+              Acceso Rápido con Credenciales Individuales (ITHOT)
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {users.map((u) => {
                 const isAdmin = u.rol.includes('Administrador');
                 return (
@@ -204,17 +204,30 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
                     key={u.id}
                     type="button"
                     onClick={() => handleQuickSelect(u)}
-                    className={`p-2 rounded-xl text-left border transition-all text-xs cursor-pointer flex flex-col justify-between ${
+                    className={`p-2.5 rounded-xl text-left border transition-all text-xs cursor-pointer flex flex-col justify-between gap-1 group ${
                       isAdmin
                         ? 'bg-blue-950/40 border-blue-500/40 hover:bg-blue-900/50'
                         : 'bg-slate-950/60 border-slate-800 hover:bg-slate-800/80'
                     }`}
                   >
-                    <div className="font-bold text-white truncate text-[11px]">
-                      {u.nombre.split(' ')[0]} {u.apellido?.split(' ')[0] || ''}
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-white group-hover:text-blue-400 transition-colors truncate text-[11px]">
+                        {u.nombre}
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        En línea
+                      </span>
                     </div>
-                    <div className="text-[10px] text-blue-400 font-mono truncate">
-                      {u.rol}
+
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span className="text-blue-400 font-semibold">{u.rol}</span>
+                      <span className="font-mono text-slate-500">@{u.usuario}</span>
+                    </div>
+
+                    <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between pt-1 border-t border-slate-800/60">
+                      <span>Pass: {u.password_plain || 'ITHOT2026*'}</span>
+                      <span>{u.ultimo_acceso ? u.ultimo_acceso.split(' ')[1] : '08:30'}</span>
                     </div>
                   </button>
                 );

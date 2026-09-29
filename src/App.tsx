@@ -5,6 +5,11 @@ import {
   EtapaPipelineDB,
   ProspectoDB,
   ContactoDB,
+  EmpresaDB,
+  ComentarioDB,
+  AdjuntoDB,
+  ObjetivoComercialDB,
+  RegistroPapeleraDB,
   SeguimientoDB,
   TareaDB,
   ActividadDB,
@@ -31,16 +36,21 @@ import { Lead, Activity, Task, User, LeadStage, UserRole } from './types/crm';
 // Layout & Navigation
 import { AppSidebar } from './components/layout/AppSidebar';
 import { NotificationsDrawer } from './components/notifications/NotificationsDrawer';
+import { GlobalSearchBar } from './components/layout/GlobalSearchBar';
 
 // Functional CRM Modules
 import { LoginView } from './components/auth/LoginView';
 import { DashboardView } from './components/dashboard/DashboardView';
+import { CompaniesView } from './components/companies/CompaniesView';
 import { ContactsView } from './components/contacts/ContactsView';
 import { LeadsView } from './components/leads/LeadsView';
 import { PipelineView } from './components/pipeline/PipelineView';
 import { TrackingView } from './components/tracking/TrackingView';
 import { TasksView } from './components/tasks/TasksView';
 import { CalendarView } from './components/calendar/CalendarView';
+import { GoalsView } from './components/goals/GoalsView';
+import { TrashView } from './components/trash/TrashView';
+import { LiveActivityView } from './components/activity/LiveActivityView';
 import { ReportsView } from './components/reports/ReportsView';
 import { ImportsModule } from './components/import/ImportsModule';
 import { ExportsModule } from './components/export/ExportsModule';
@@ -50,6 +60,8 @@ import { SettingsView } from './components/settings/SettingsView';
 import { TechDocsView } from './components/docs/TechDocsView';
 
 // Modals & Drawers
+import { CompanyModal } from './components/companies/CompanyModal';
+import { CompanyDrawer } from './components/companies/CompanyDrawer';
 import { ContactDrawer } from './components/contacts/ContactDrawer';
 import { CreateContactModal } from './components/modals/CreateContactModal';
 import { LeadDrawer } from './components/leads/LeadDrawer';
@@ -77,6 +89,12 @@ import {
   Bell,
   LogOut,
   ShieldAlert,
+  Building2,
+  Target,
+  Trash2,
+  Activity as ActivityIcon,
+  Download,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface DBState {
@@ -84,6 +102,11 @@ interface DBState {
   etapas: EtapaPipelineDB[];
   prospectos: ProspectoDB[];
   contactos: ContactoDB[];
+  empresas: EmpresaDB[];
+  comentarios: ComentarioDB[];
+  adjuntos: AdjuntoDB[];
+  objetivos: ObjetivoComercialDB[];
+  papelera: RegistroPapeleraDB[];
   seguimientos: SeguimientoDB[];
   tareas: TareaDB[];
   actividades: ActividadDB[];
@@ -116,6 +139,11 @@ export default function App() {
     etapas,
     prospectos,
     contactos,
+    empresas,
+    comentarios,
+    adjuntos,
+    objetivos,
+    papelera,
     seguimientos,
     tareas,
     actividades,
@@ -133,6 +161,12 @@ export default function App() {
     const initialData = loadRelationalData();
     return initialData.usuarios[0]?.id || 1;
   });
+
+  // Empresas State
+  const [selectedCompany, setSelectedCompany] = useState<EmpresaDB | null>(null);
+  const [isCompanyDrawerOpen, setIsCompanyDrawerOpen] = useState(false);
+  const [isCreateCompanyModalOpen, setIsCreateCompanyModalOpen] = useState(false);
+  const [companyToEdit, setCompanyToEdit] = useState<EmpresaDB | null>(null);
 
   // Modals & Drawers State
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
@@ -427,12 +461,26 @@ export default function App() {
     );
   };
 
-  // Delete Contact
+  // Delete Contact (Soft Delete a Papelera)
   const handleDeleteContact = (contactId: number) => {
     const target = contactos.find((c) => c.id === contactId);
+    if (!target) return;
+
+    const trashRecord: RegistroPapeleraDB = {
+      id: Date.now(),
+      entidad_tipo: 'Contacto',
+      entidad_id: contactId,
+      titulo: `${target.nombre} ${target.apellido} (${target.empresa})`,
+      detalles: `Cargo: ${target.cargo} • ${target.email} • Tel: ${target.telefono}`,
+      datos_json: JSON.stringify(target),
+      usuario_elimino: currentUserDB.nombre,
+      fecha_eliminacion: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    };
+
     setDbState((prev) => ({
       ...prev,
       contactos: prev.contactos.filter((c) => c.id !== contactId),
+      papelera: [trashRecord, ...prev.papelera],
     }));
 
     if (selectedContact?.id === contactId) {
@@ -443,8 +491,8 @@ export default function App() {
     recordAuditAndNotify(
       'Eliminación',
       'Contactos',
-      target ? `${target.nombre} ${target.apellido} (${target.empresa})` : `Contacto #${contactId}`,
-      `Eliminó el contacto de la base de datos.`
+      `${target.nombre} ${target.apellido} (${target.empresa})`,
+      `Movió el contacto a la papelera de reciclaje.`
     );
   };
 
@@ -599,17 +647,27 @@ export default function App() {
     );
   };
 
-  // Eliminar Prospecto (DELETE con CASCADE)
+  // Eliminar Prospecto (Soft Delete a Papelera de Reciclaje)
   const handleDeleteLead = (leadIdStr: string) => {
     const rawId = Number(leadIdStr.replace('lead-', ''));
     const target = prospectos.find((p) => p.id === rawId);
+    if (!target) return;
+
+    const trashRecord: RegistroPapeleraDB = {
+      id: Date.now(),
+      entidad_tipo: 'Prospecto',
+      entidad_id: rawId,
+      titulo: `${target.nombre} ${target.apellido} (${target.empresa})`,
+      detalles: `Valor estimado: RD$ ${target.valor_estimado.toLocaleString()} • ${target.producto_interes || 'ITHOT System'}`,
+      datos_json: JSON.stringify(target),
+      usuario_elimino: currentUserDB.nombre,
+      fecha_eliminacion: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    };
 
     setDbState((prev) => ({
       ...prev,
       prospectos: prev.prospectos.filter((p) => p.id !== rawId),
-      seguimientos: prev.seguimientos.filter((s) => s.prospecto_id !== rawId),
-      tareas: prev.tareas.filter((t) => t.prospecto_id !== rawId),
-      actividades: prev.actividades.filter((a) => a.prospecto_id !== rawId),
+      papelera: [trashRecord, ...prev.papelera],
     }));
 
     if (selectedLeadId === rawId) {
@@ -621,8 +679,238 @@ export default function App() {
       'Eliminación',
       'Prospectos',
       target?.empresa || `Prospecto #${rawId}`,
-      `Eliminó la oportunidad comercial y sus seguimientos asociados.`
+      `Movió la oportunidad comercial a la papelera de reciclaje.`
     );
+  };
+
+  // Empresa Handlers (Módulo Empresas)
+  const handleSaveCompany = (companyData: Omit<EmpresaDB, 'id'>, id?: number) => {
+    const isNew = !id;
+    const companyId = id || (empresas.length > 0 ? Math.max(...empresas.map((e) => e.id)) + 1 : 1);
+    const newCompany: EmpresaDB = {
+      ...companyData,
+      id: companyId,
+    };
+
+    setDbState((prev) => ({
+      ...prev,
+      empresas: isNew
+        ? [newCompany, ...prev.empresas]
+        : prev.empresas.map((e) => (e.id === companyId ? newCompany : e)),
+    }));
+
+    recordAuditAndNotify(
+      isNew ? 'Creación' : 'Actualización',
+      'Configuración',
+      newCompany.razon_social,
+      `${isNew ? 'Registró nueva' : 'Actualizó datos de la'} empresa: ${newCompany.razon_social} (RNC: ${newCompany.rnc}).`
+    );
+  };
+
+  const handleDeleteCompany = (id: number) => {
+    const target = empresas.find((e) => e.id === id);
+    if (!target) return;
+
+    const trashRecord: RegistroPapeleraDB = {
+      id: Date.now(),
+      entidad_tipo: 'Empresa',
+      entidad_id: id,
+      titulo: target.razon_social,
+      detalles: `RNC: ${target.rnc} • ${target.ciudad} • ${target.industria}`,
+      datos_json: JSON.stringify(target),
+      usuario_elimino: currentUserDB.nombre,
+      fecha_eliminacion: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    };
+
+    setDbState((prev) => ({
+      ...prev,
+      empresas: prev.empresas.filter((e) => e.id !== id),
+      papelera: [trashRecord, ...prev.papelera],
+    }));
+
+    if (selectedCompany?.id === id) {
+      setIsCompanyDrawerOpen(false);
+      setSelectedCompany(null);
+    }
+
+    recordAuditAndNotify(
+      'Eliminación',
+      'Configuración',
+      target.razon_social,
+      `Movió la empresa "${target.razon_social}" a la papelera de reciclaje.`
+    );
+  };
+
+  // Papelera Handlers (Restaurar / Eliminar Definitivamente)
+  const handleRestoreTrash = (item: RegistroPapeleraDB) => {
+    try {
+      const parsedData = JSON.parse(item.datos_json);
+      setDbState((prev) => {
+        const updated = { ...prev, papelera: prev.papelera.filter((p) => p.id !== item.id) };
+
+        if (item.entidad_tipo === 'Empresa') {
+          updated.empresas = [parsedData, ...prev.empresas];
+        } else if (item.entidad_tipo === 'Contacto') {
+          updated.contactos = [parsedData, ...prev.contactos];
+        } else if (item.entidad_tipo === 'Prospecto') {
+          updated.prospectos = [parsedData, ...prev.prospectos];
+        } else if (item.entidad_tipo === 'Tarea') {
+          updated.tareas = [parsedData, ...prev.tareas];
+        }
+
+        return updated;
+      });
+
+      recordAuditAndNotify(
+        'Creación',
+        'Configuración',
+        item.titulo,
+        `Restauró el registro "${item.titulo}" desde la papelera de reciclaje.`
+      );
+    } catch (e) {
+      console.error('Error restaurando registro', e);
+    }
+  };
+
+  const handlePermanentDelete = (id: number) => {
+    setDbState((prev) => ({
+      ...prev,
+      papelera: prev.papelera.filter((p) => p.id !== id),
+    }));
+
+    recordAuditAndNotify(
+      'Eliminación',
+      'Configuración',
+      `Registro Papelera #${id}`,
+      `Eliminó permanentemente un registro de la papelera.`
+    );
+  };
+
+  const handleEmptyTrash = () => {
+    setDbState((prev) => ({
+      ...prev,
+      papelera: [],
+    }));
+
+    recordAuditAndNotify(
+      'Eliminación',
+      'Configuración',
+      'Papelera Completa',
+      `Vació definitivamente todos los registros de la papelera.`
+    );
+  };
+
+  // Objetivos Comerciales Handlers
+  const handleSaveObjetivo = (objData: Omit<ObjetivoComercialDB, 'id'>, id?: number) => {
+    const isNew = !id;
+    const objId = id || (objetivos.length > 0 ? Math.max(...objetivos.map((o) => o.id)) + 1 : 1);
+    const newObj: ObjetivoComercialDB = {
+      ...objData,
+      id: objId,
+    };
+
+    setDbState((prev) => ({
+      ...prev,
+      objetivos: isNew
+        ? [newObj, ...prev.objetivos]
+        : prev.objetivos.map((o) => (o.id === objId ? newObj : o)),
+    }));
+
+    recordAuditAndNotify(
+      isNew ? 'Creación' : 'Actualización',
+      'Configuración',
+      newObj.titulo,
+      `${isNew ? 'Definió' : 'Actualizó'} objetivo comercial: ${newObj.titulo}.`
+    );
+  };
+
+  const handleDeleteObjetivo = (id: number) => {
+    setDbState((prev) => ({
+      ...prev,
+      objetivos: prev.objetivos.filter((o) => o.id !== id),
+    }));
+  };
+
+  // Comentarios & Adjuntos Handlers
+  const handleAddComentario = (c: Omit<ComentarioDB, 'id'>) => {
+    const newId = comentarios.length > 0 ? Math.max(...comentarios.map((x) => x.id)) + 1 : 1;
+    const newComment: ComentarioDB = { ...c, id: newId };
+    setDbState((prev) => ({
+      ...prev,
+      comentarios: [newComment, ...prev.comentarios],
+    }));
+
+    recordAuditAndNotify(
+      'Creación',
+      'Configuración',
+      `Nota sobre ${c.entidad_tipo}`,
+      `${c.usuario_nombre} agregó un comentario: "${c.texto.slice(0, 45)}..."`
+    );
+  };
+
+  const handleAddAdjunto = (a: Omit<AdjuntoDB, 'id'>) => {
+    const newId = adjuntos.length > 0 ? Math.max(...adjuntos.map((x) => x.id)) + 1 : 1;
+    const newAttachment: AdjuntoDB = { ...a, id: newId };
+    setDbState((prev) => ({
+      ...prev,
+      adjuntos: [newAttachment, ...prev.adjuntos],
+    }));
+
+    recordAuditAndNotify(
+      'Creación',
+      'Configuración',
+      a.nombre_archivo,
+      `${a.usuario_nombre} adjuntó el archivo ${a.nombre_archivo} (${a.tipo_archivo}).`
+    );
+  };
+
+  const handleDeleteComentario = (id: number) => {
+    setDbState((prev) => ({
+      ...prev,
+      comentarios: prev.comentarios.filter((c) => c.id !== id),
+    }));
+  };
+
+  const handleDeleteAdjunto = (id: number) => {
+    setDbState((prev) => ({
+      ...prev,
+      adjuntos: prev.adjuntos.filter((a) => a.id !== id),
+    }));
+  };
+
+  // Global Search Navigation
+  const handleSelectEntityFromSearch = (
+    type: 'empresa' | 'contacto' | 'prospecto' | 'usuario',
+    id: number,
+    section: SeccionApp
+  ) => {
+    setActiveSection(section);
+    if (type === 'empresa') {
+      const found = empresas.find((e) => e.id === id);
+      if (found) {
+        setSelectedCompany(found);
+        setIsCompanyDrawerOpen(true);
+      }
+    } else if (type === 'contacto') {
+      const found = contactos.find((c) => c.id === id);
+      if (found) {
+        setSelectedContact(found);
+        setIsContactDrawerOpen(true);
+      }
+    } else if (type === 'prospecto') {
+      setSelectedLeadId(id);
+      setIsLeadDrawerOpen(true);
+    } else if (type === 'usuario') {
+      handleSelectUser(id);
+    }
+  };
+
+  // MySQL Dump Download Handler
+  const handleDownloadMySQL = () => {
+    const link = document.createElement('a');
+    link.href = '/api/mysql-dump';
+    link.download = 'crm_comercial_mysql.sql';
+    link.click();
   };
 
   // Mover Etapa en Pipeline Kanban
@@ -1048,13 +1336,17 @@ export default function App() {
 
   const sectionTitles: Record<SeccionApp, string> = {
     dashboard: 'Dashboard Principal',
+    empresas: 'Directorio y Gestión de Empresas Comerciales',
     contactos: 'Directorio y Gestión de Contactos (Empresas y Personas)',
     prospectos: 'Directorio y Gestión de Prospectos',
     pipeline: 'Pipeline Comercial (Tablero Kanban)',
     seguimientos: 'Módulo de Seguimientos Multicanal',
     tareas: 'Módulo de Tareas Comerciales',
     calendario: 'Calendario Comercial',
+    objetivos: 'Objetivos & Metas Comerciales (Septiembre 2026)',
+    actividad: 'Actividad Reciente del Sistema en Vivo',
     reportes: 'Módulo de Reportes y Analítica',
+    papelera: 'Papelera de Reciclaje y Restauración de Registros',
     importaciones: 'Módulo Independiente de Importaciones (Excel / CSV)',
     exportaciones: 'Módulo Independiente de Exportaciones',
     usuarios: 'Gestión de Usuarios, Subcuentas y Roles (RBAC)',
@@ -1078,9 +1370,11 @@ export default function App() {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         currentUser={currentUserDB}
         onRoleChange={handleRoleChange}
+        empresasCount={empresas.length}
         contactosCount={contactos.length}
         prospectosCount={prospectos.length}
         tareasPendientesCount={pendingTasksCount}
+        papeleraCount={papelera.length}
         onOpenAcademicModal={() => setIsAcademicModalOpen(true)}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
@@ -1091,7 +1385,7 @@ export default function App() {
 
       {/* Main Workspace Canvas */}
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-slate-950">
-        {/* Top Institutional Header Bar */}
+        {/* Top Institutional Header Bar with Global Search */}
         <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30 shrink-0">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             {/* Hamburger button for Mobile */}
@@ -1107,12 +1401,33 @@ export default function App() {
               ITHOT
             </span>
             <ChevronRight className="w-3.5 h-3.5 text-slate-600 hidden sm:inline" />
-            <h1 className="text-xs sm:text-base font-bold text-white tracking-tight truncate">
+            <h1 className="text-xs sm:text-base font-bold text-white tracking-tight truncate max-w-[150px] lg:max-w-[280px]">
               {sectionTitles[activeSection]}
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Global Search Bar (Central) */}
+          <div className="flex-1 max-w-sm hidden md:block">
+            <GlobalSearchBar
+              empresas={empresas}
+              contactos={contactos}
+              prospectos={prospectos}
+              usuarios={usuarios}
+              onSelectEntity={handleSelectEntityFromSearch}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Download MySQL Dump Schema */}
+            <button
+              onClick={handleDownloadMySQL}
+              className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 rounded-lg transition-colors cursor-pointer"
+              title="Descargar base de datos relacional MySQL 8.0 (.sql)"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Esquema MySQL (.sql)</span>
+            </button>
+
             <button
               onClick={() => setIsAcademicModalOpen(true)}
               className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 rounded-lg transition-colors cursor-pointer"
@@ -1121,16 +1436,16 @@ export default function App() {
               <span>Proyecto de Posgrado</span>
             </button>
 
-            {/* Quick Contact Button */}
+            {/* Quick Company Button */}
             <button
               onClick={() => {
-                setContactToEdit(null);
-                setIsCreateContactModalOpen(true);
+                setCompanyToEdit(null);
+                setIsCreateCompanyModalOpen(true);
               }}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors cursor-pointer"
             >
-              <Contact className="w-3.5 h-3.5 text-blue-400" />
-              <span>+ Contacto</span>
+              <Building2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>+ Empresa</span>
             </button>
 
             {/* Quick Opportunity Button */}
@@ -1139,7 +1454,7 @@ export default function App() {
                 setLeadToEdit(null);
                 setIsCreateLeadModalOpen(true);
               }}
-              className="px-3 sm:px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              className="px-2.5 sm:px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden xs:inline">+ Oportunidad</span>
@@ -1160,9 +1475,9 @@ export default function App() {
               )}
             </button>
 
-            {/* Active User Switcher Dropdown (Allows testing colleagues and login) */}
+            {/* Active User Switcher & Status Badge */}
             <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700/80 rounded-lg px-2 py-1 text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="En línea" />
               <select
                 value={currentUserDB.id}
                 onChange={(e) => handleSelectUser(Number(e.target.value))}
@@ -1180,10 +1495,11 @@ export default function App() {
             {/* Logout button */}
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer hidden sm:flex items-center"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1"
               title="Cerrar sesión"
             >
               <LogOut className="w-4 h-4" />
+              <span className="text-[11px] hidden sm:inline">Cerrar Sesión</span>
             </button>
           </div>
         </header>
@@ -1205,6 +1521,37 @@ export default function App() {
               }}
               onOpenCreateActivityModal={() => setIsCreateActivityModalOpen(true)}
               onToggleTaskStatus={handleToggleTaskStatus}
+              totalClientes={contactos.length}
+              lastImport={historialImportaciones[0] || null}
+              lastExport={historialExportaciones[0] || null}
+              activeUsersCount={usuarios.filter((u) => u.activo).length}
+              objetivos={objetivos}
+              recentActivities={registrosAuditoria}
+            />
+          )}
+
+          {/* Módulo: Empresas Comerciales */}
+          {activeSection === 'empresas' && (
+            <CompaniesView
+              companies={empresas}
+              contacts={contactos}
+              prospects={prospectos}
+              users={usuarios}
+              currentRole={currentRole}
+              currentUserId={currentUserDB.id}
+              onOpenCreateCompanyModal={() => {
+                setCompanyToEdit(null);
+                setIsCreateCompanyModalOpen(true);
+              }}
+              onOpenEditCompanyModal={(comp) => {
+                setCompanyToEdit(comp);
+                setIsCreateCompanyModalOpen(true);
+              }}
+              onOpenCompanyDrawer={(comp) => {
+                setSelectedCompany(comp);
+                setIsCompanyDrawerOpen(true);
+              }}
+              onDeleteCompany={handleDeleteCompany}
             />
           )}
 
@@ -1308,6 +1655,36 @@ export default function App() {
                 setSelectedLeadId(Number(leadId));
                 setIsLeadDrawerOpen(true);
               }}
+            />
+          )}
+
+          {/* Módulo: Objetivos Comerciales */}
+          {activeSection === 'objetivos' && (
+            <GoalsView
+              objetivos={objetivos}
+              users={usuarios}
+              currentRole={currentRole}
+              onSaveObjetivo={handleSaveObjetivo}
+              onDeleteObjetivo={handleDeleteObjetivo}
+            />
+          )}
+
+          {/* Módulo: Actividad Reciente del Sistema */}
+          {activeSection === 'actividad' && (
+            <LiveActivityView
+              auditLogs={registrosAuditoria}
+              users={usuarios}
+            />
+          )}
+
+          {/* Módulo: Papelera de Reciclaje */}
+          {activeSection === 'papelera' && (
+            <TrashView
+              papelera={papelera}
+              currentRole={currentRole}
+              onRestore={handleRestoreTrash}
+              onPermanentDelete={handlePermanentDelete}
+              onEmptyTrash={handleEmptyTrash}
             />
           )}
 
@@ -1470,6 +1847,51 @@ export default function App() {
         onNavigateSection={(sec) => setActiveSection(sec)}
       />
 
+      {/* Empresa Drawer (Ficha Técnica de Empresa Comercial) */}
+      <CompanyDrawer
+        company={selectedCompany}
+        isOpen={isCompanyDrawerOpen}
+        onClose={() => {
+          setIsCompanyDrawerOpen(false);
+          setSelectedCompany(null);
+        }}
+        onEdit={(comp) => {
+          setCompanyToEdit(comp);
+          setIsCreateCompanyModalOpen(true);
+        }}
+        onDelete={handleDeleteCompany}
+        users={usuarios}
+        contacts={contactos}
+        prospects={prospectos}
+        followups={seguimientos}
+        currentUser={currentUserDB}
+        comentarios={comentarios}
+        adjuntos={adjuntos}
+        onAddComentario={handleAddComentario}
+        onAddAdjunto={handleAddAdjunto}
+        auditLogs={registrosAuditoria}
+        onSelectContact={(c) => {
+          setSelectedContact(c);
+          setIsContactDrawerOpen(true);
+        }}
+        onSelectProspect={(p) => {
+          setSelectedLeadId(p.id);
+          setIsLeadDrawerOpen(true);
+        }}
+      />
+
+      {/* Modal: Crear / Editar Empresa */}
+      <CompanyModal
+        isOpen={isCreateCompanyModalOpen}
+        onClose={() => {
+          setIsCreateCompanyModalOpen(false);
+          setCompanyToEdit(null);
+        }}
+        onSave={handleSaveCompany}
+        companyToEdit={companyToEdit}
+        users={usuarios}
+      />
+
       {/* Contact Drawer (Ficha Técnica de Contacto) */}
       <ContactDrawer
         contact={selectedContact}
@@ -1486,6 +1908,12 @@ export default function App() {
         onConvertToOpportunity={handleConvertToOpportunity}
         users={usuarios}
         seguimientos={seguimientos}
+        currentUser={currentUserDB}
+        comentarios={comentarios}
+        adjuntos={adjuntos}
+        onAddComentario={handleAddComentario}
+        onAddAdjunto={handleAddAdjunto}
+        auditLogs={registrosAuditoria}
       />
 
       {/* Modal: Crear / Editar Contacto */}
@@ -1518,6 +1946,12 @@ export default function App() {
           setLeadToEdit(lead);
           setIsCreateLeadModalOpen(true);
         }}
+        comentarios={comentarios}
+        adjuntos={adjuntos}
+        onAddComentario={handleAddComentario}
+        onAddAdjunto={handleAddAdjunto}
+        auditLogs={registrosAuditoria}
+        currentUserDB={currentUserDB}
       />
 
       {/* Modal: Crear / Editar Prospecto */}

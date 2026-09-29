@@ -23,10 +23,18 @@ import {
   Layers,
   MapPin,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
 import { Lead, Activity, LeadStage, User, ActivityType, ActivityResult } from '../../types/crm';
 import { PIPELINE_STAGES } from '../../data/mockData';
-import { CATALOGO_ETIQUETAS } from '../../types/schema';
+import {
+  CATALOGO_ETIQUETAS,
+  ComentarioDB,
+  AdjuntoDB,
+  RegistroAuditoriaDB,
+  UsuarioDB,
+} from '../../types/schema';
+import { CommentsAndAttachments } from '../common/CommentsAndAttachments';
 
 interface LeadDrawerProps {
   lead: Lead | null;
@@ -39,6 +47,12 @@ interface LeadDrawerProps {
   currentUser: User;
   users: User[];
   onOpenEditModal: (lead: Lead) => void;
+  comentarios?: ComentarioDB[];
+  adjuntos?: AdjuntoDB[];
+  onAddComentario?: (c: Omit<ComentarioDB, 'id'>) => void;
+  onAddAdjunto?: (a: Omit<AdjuntoDB, 'id'>) => void;
+  auditLogs?: RegistroAuditoriaDB[];
+  currentUserDB?: UsuarioDB;
 }
 
 export const LeadDrawer: React.FC<LeadDrawerProps> = ({
@@ -52,8 +66,14 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({
   currentUser,
   users,
   onOpenEditModal,
+  comentarios = [],
+  adjuntos = [],
+  onAddComentario,
+  onAddAdjunto,
+  auditLogs = [],
+  currentUserDB,
 }) => {
-  const [activeTab, setActiveTab] = useState<'ficha' | 'historial' | 'notas' | 'archivos'>('ficha');
+  const [activeTab, setActiveTab] = useState<'ficha' | 'historial' | 'comentarios' | 'notas'>('ficha');
   const [quickNote, setQuickNote] = useState('');
   const [newTagInput, setNewTagInput] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
@@ -241,6 +261,36 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({
           </div>
         </div>
 
+        {/* Alerta de Seguimiento Pendiente (+7 días sin actividad) */}
+        {(() => {
+          const dateToCheck = lead.ultima_interaccion || lead.createdAt || '2026-09-20';
+          const diffDays = Math.ceil(
+            Math.abs(new Date('2026-09-29').getTime() - new Date(dateToCheck.split(' ')[0]).getTime()) /
+              (1000 * 60 * 60 * 24)
+          );
+          const isOverdue =
+            lead.stage !== 'Ganado' &&
+            lead.stage !== 'Perdido' &&
+            (diffDays >= 7 || !lead.nextFollowUpDate || lead.nextFollowUpDate < '2026-09-23');
+
+          if (!isOverdue) return null;
+
+          return (
+            <div className="bg-amber-500/15 border-b border-amber-500/30 px-5 py-2.5 flex items-center justify-between text-amber-300 text-xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="font-bold">Alerta: Seguimiento pendiente.</span>
+                <span className="text-amber-200/80 hidden sm:inline">
+                  (Este prospecto no ha recibido seguimiento comercial en más de 7 días)
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-amber-500/25 text-amber-300 font-mono text-[10px] font-bold">
+                +7 Días
+              </span>
+            </div>
+          );
+        })()}
+
         {/* Tab Switcher */}
         <div className="flex border-b border-slate-800 bg-slate-950/40 px-5 text-xs font-semibold">
           <button
@@ -261,10 +311,22 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({
                 : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
-            <span>Historial de Actividades</span>
+            <Clock className="w-3.5 h-3.5" />
+            <span>Historial & Trazabilidad</span>
             <span className="px-1.5 py-0.2 bg-slate-800 text-blue-400 rounded-full text-[10px]">
               {leadActivities.length}
             </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('comentarios')}
+            className={`py-2.5 px-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'comentarios'
+                ? 'border-blue-500 text-white font-bold'
+                : 'border-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            <Paperclip className="w-3.5 h-3.5" />
+            <span>Comentarios & Adjuntos</span>
           </button>
           <button
             onClick={() => setActiveTab('notas')}
@@ -592,6 +654,121 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   ))}
                 </div>
               )}
+
+              {/* Trazabilidad Inmutable: Qué cambió, Quién lo cambió, Cuándo se cambió */}
+              <div className="pt-4 border-t border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Registro de Modificaciones (Auditoría del Sistema)</span>
+                  </h4>
+                  <span className="text-[10px] text-slate-500 font-mono">Trazabilidad Total</span>
+                </div>
+
+                {(() => {
+                  const leadAudits = auditLogs.filter(
+                    (a) =>
+                      a.registro_afectado?.toLowerCase().includes(lead.company.toLowerCase()) ||
+                      a.registro_afectado?.toLowerCase().includes(lead.name.toLowerCase()) ||
+                      a.registro_afectado?.includes(lead.id.replace('lead-', '')) ||
+                      a.detalles?.toLowerCase().includes(lead.company.toLowerCase())
+                  );
+
+                  return (
+                    <div className="space-y-2">
+                      <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-start gap-3">
+                        <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-200">Creación Inicial de la Oportunidad</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 font-mono">
+                              {lead.createdAt}
+                            </span>
+                          </div>
+                          <p className="text-slate-400">
+                            <strong>Qué se realizó:</strong> Apertura de oportunidad comercial para {lead.company} por monto estimado de ${lead.estimatedValue.toLocaleString()} USD/RD$.
+                          </p>
+                          <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                            <span><strong>Quién:</strong> {lead.assignedToName}</span>
+                            <span><strong>Cuándo:</strong> {lead.createdAt}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {leadAudits.map((audit) => (
+                        <div
+                          key={audit.id}
+                          className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                audit.accion === 'Creación'
+                                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                  : audit.accion === 'Modificación'
+                                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                  : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                              }`}
+                            >
+                              {audit.accion}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              {audit.fecha} {audit.hora}
+                            </span>
+                          </div>
+
+                          <div className="bg-slate-900/90 rounded-lg p-2.5 border border-slate-800/80 space-y-1 text-slate-300">
+                            <p>
+                              <strong className="text-slate-200">Qué cambió: </strong>
+                              {audit.detalles || `${audit.accion} en ${audit.modulo}: ${audit.registro_afectado}`}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+                              <span>
+                                <strong className="text-slate-300">Quién lo cambió: </strong>
+                                {audit.usuario}
+                              </span>
+                              <span>•</span>
+                              <span>
+                                <strong className="text-slate-300">Cuándo se cambió: </strong>
+                                {audit.fecha} a las {audit.hora}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'comentarios' && (
+            <div className="animate-in fade-in">
+              <CommentsAndAttachments
+                entidadTipo="oportunidad"
+                entidadId={Number(lead.id.replace('lead-', '')) || 1}
+                entidadTitulo={`${lead.company} - ${lead.name}`}
+                currentUser={
+                  currentUserDB || {
+                    id: 1,
+                    nombre: currentUser.name,
+                    email: currentUser.email,
+                    usuario: currentUser.username || 'usuario',
+                    password_hash: '',
+                    rol: 'Administrador General',
+                    activo: true,
+                    fecha_creacion: '2026-09-01',
+                    empresa: 'ITHOT',
+                  }
+                }
+                comentarios={comentarios}
+                adjuntos={adjuntos}
+                onAddComentario={onAddComentario || (() => {})}
+                onAddAdjunto={onAddAdjunto || (() => {})}
+              />
             </div>
           )}
 

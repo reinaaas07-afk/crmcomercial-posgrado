@@ -3,6 +3,11 @@ import {
   EtapaPipelineDB,
   ProspectoDB,
   ContactoDB,
+  EmpresaDB,
+  ComentarioDB,
+  AdjuntoDB,
+  ObjetivoComercialDB,
+  RegistroPapeleraDB,
   SeguimientoDB,
   TareaDB,
   ActividadDB,
@@ -80,6 +85,240 @@ export const INITIAL_USUARIOS: UsuarioDB[] = [
     ultimo_acceso: '2026-09-28 17:30:00',
     empresa: 'ITHOT',
     subcuenta: 'ITHOT Sede Principal',
+  },
+];
+
+// Empresas Dominicanas Registradas en el Sistema CRM
+export const INITIAL_EMPRESAS: EmpresaDB[] = [
+  {
+    id: 1,
+    razon_social: 'Auto Repuestos Central S.R.L.',
+    rnc: '1-31-45678-2',
+    telefono: '+1 809-582-4411',
+    email: 'contacto@autorepuestoscentral.do',
+    direccion: 'Av. Bartolomé Colón No. 85, Los Jardines',
+    ciudad: 'Santiago de los Caballeros',
+    sector: 'Los Jardines',
+    sitio_web: 'https://autorepuestoscentral.do',
+    industria: 'Comercio Mayorista y Repuestos',
+    cantidad_empleados: 45,
+    usuario_id: 1, // Yenifer Reina Sena Suero
+    etiquetas: 'Prospecto, ITHOT System, Facturación Electrónica, Inventario',
+    notas: 'Líder en repuestos automotrices en la región Norte. Requiere emisión de comprobantes fiscales e-CF.',
+    fecha_registro: '2026-09-15 09:30:00',
+    estado: 'Prospecto',
+  },
+  {
+    id: 2,
+    razon_social: 'Distribuidora Corripio & Asociados',
+    rnc: '1-01-23456-7',
+    telefono: '+1 809-566-1020',
+    email: 'comercial@distcorripio.com.do',
+    direccion: 'Av. John F. Kennedy Km 6.5, Edif. Corporativo',
+    ciudad: 'Santo Domingo',
+    sector: 'Ensanche La Fe',
+    sitio_web: 'https://distcorripio.com.do',
+    industria: 'Distribución y Retail Masivo',
+    cantidad_empleados: 250,
+    usuario_id: 2, // Armando Montes
+    etiquetas: 'Cliente Activo, ITHOT System, Cuentas por Cobrar, Reportes Gerenciales',
+    notas: 'Operaciones centralizadas con ITHOT. En proceso de sincronización con CRM comercial.',
+    fecha_registro: '2026-09-10 11:00:00',
+    estado: 'Activa',
+  },
+  {
+    id: 3,
+    razon_social: 'Supermercados Plaza Lama Express S.A.',
+    rnc: '1-02-98765-4',
+    telefono: '+1 809-591-3300',
+    email: 'operaciones@plazalama.com.do',
+    direccion: 'Autopista San Isidro esq. Charles de Gaulle',
+    ciudad: 'Santo Domingo Este',
+    sector: 'San Isidro',
+    sitio_web: 'https://plazalama.com.do',
+    industria: 'Supermercados y Gran Superficie',
+    cantidad_empleados: 180,
+    usuario_id: 3, // Felix Robles
+    etiquetas: 'Prospecto, POS Digital, Facturación Electrónica, Caja',
+    notas: 'Interesados en migrar 14 cajas registradoras a la tecnología POS Digital ITHOT.',
+    fecha_registro: '2026-09-18 14:00:00',
+    estado: 'Prospecto',
+  },
+  {
+    id: 4,
+    razon_social: 'Farmacias Carol S.A.',
+    rnc: '1-01-77889-1',
+    telefono: '+1 809-541-2000',
+    email: 'contacto@farmaciascarol.com.do',
+    direccion: 'Av. Gustavo Mejía Ricart No. 102, Ens. Naco',
+    ciudad: 'Santo Domingo',
+    sector: 'Ensanche Naco',
+    sitio_web: 'https://farmaciascarol.com.do',
+    industria: 'Salud y Farmacéutica',
+    cantidad_empleados: 320,
+    usuario_id: 4, // Ana Julia Alcántara
+    etiquetas: 'Cliente, ITHOT System, Facturación Electrónica, Inventario',
+    notas: 'Cadena con múltiples sucursales interconectadas. Control estricto de lotes y fechas de vencimiento.',
+    fecha_registro: '2026-09-12 10:20:00',
+    estado: 'Activa',
+  },
+  {
+    id: 5,
+    razon_social: 'Centro Médico Real del Cibao',
+    rnc: '1-30-55443-8',
+    telefono: '+1 809-583-1122',
+    email: 'direccion@centromedicoreal.do',
+    direccion: 'Calle Juan Pablo Duarte No. 44',
+    ciudad: 'Santiago de los Caballeros',
+    sector: 'La Esmeralda',
+    sitio_web: 'https://centromedicoreal.do',
+    industria: 'Salud y Clínicas',
+    cantidad_empleados: 95,
+    usuario_id: 1, // Yenifer Sena
+    etiquetas: 'Prospecto, CRM Comercial, Contabilidad, Facturación Electrónica',
+    notas: 'Evaluando facturación electrónica DGII integrada a expedientes clínicos.',
+    fecha_registro: '2026-09-20 16:30:00',
+    estado: 'Lead',
+  },
+];
+
+// Comentarios y Notas por Entidad
+export const INITIAL_COMENTARIOS: ComentarioDB[] = [
+  {
+    id: 1,
+    entidad_tipo: 'empresa',
+    entidad_id: 1,
+    usuario_nombre: 'Yenifer Reina Sena Suero',
+    usuario_id: 1,
+    texto: 'Cliente interesado en Facturación Electrónica DGII y control de inventario de más de 12,000 referencias.',
+    fecha_hora: '2026-09-25 10:15:00',
+  },
+  {
+    id: 2,
+    entidad_tipo: 'contacto',
+    entidad_id: 1,
+    usuario_nombre: 'Felix Manuel Robles',
+    usuario_id: 3,
+    texto: 'Se sostuvo llamada con don Rafael Almonte. Se acordó demostración remota para el próximo martes.',
+    fecha_hora: '2026-09-27 11:30:00',
+  },
+  {
+    id: 3,
+    entidad_tipo: 'prospecto',
+    entidad_id: 1,
+    usuario_nombre: 'Armando Montes de Oca Hesni',
+    usuario_id: 2,
+    texto: 'Propuesta comercial enviada con descuento del 10% por pago anual anticipado.',
+    fecha_hora: '2026-09-28 14:00:00',
+  },
+  {
+    id: 4,
+    entidad_tipo: 'oportunidad',
+    entidad_id: 1,
+    usuario_nombre: 'Ana Julia Alcántara',
+    usuario_id: 4,
+    texto: 'Verificación de RNC en DGII validada satisfactoriamente con estatus Activo Normal.',
+    fecha_hora: '2026-09-29 09:00:00',
+  },
+];
+
+// Archivos Adjuntos por Entidad
+export const INITIAL_ADJUNTOS: AdjuntoDB[] = [
+  {
+    id: 1,
+    entidad_tipo: 'empresa',
+    entidad_id: 1,
+    nombre_archivo: 'Propuesta_ITHOT_DGII_v2.pdf',
+    tipo_archivo: 'PDF',
+    tamano_kb: 1420,
+    usuario_nombre: 'Yenifer Reina Sena Suero',
+    fecha_subida: '2026-09-25 11:00:00',
+  },
+  {
+    id: 2,
+    entidad_tipo: 'contacto',
+    entidad_id: 1,
+    nombre_archivo: 'Especificaciones_Inventario_AutoRepuestos.xlsx',
+    tipo_archivo: 'Excel',
+    tamano_kb: 530,
+    usuario_nombre: 'Felix Manuel Robles',
+    fecha_subida: '2026-09-27 12:00:00',
+  },
+  {
+    id: 3,
+    entidad_tipo: 'prospecto',
+    entidad_id: 2,
+    nombre_archivo: 'Presentacion_POS_Digital_14Cajas.pdf',
+    tipo_archivo: 'PDF',
+    tamano_kb: 2150,
+    usuario_nombre: 'Armando Montes de Oca Hesni',
+    fecha_subida: '2026-09-28 15:30:00',
+  },
+];
+
+// Objetivos Comerciales Mensuales
+export const INITIAL_OBJETIVOS: ObjetivoComercialDB[] = [
+  {
+    id: 1,
+    titulo: 'Meta Mensual de Prospectos Calificados',
+    tipo: 'Prospectos',
+    meta_cantidad: 50,
+    unidad: 'prospectos',
+    periodo: 'Septiembre 2026',
+    usuario_id: null, // Global Empresa ITHOT
+    responsable: 'Equipo Comercial ITHOT',
+    avance_actual: 38,
+    fecha_limite: '2026-09-30',
+  },
+  {
+    id: 2,
+    titulo: 'Meta de Ventas y Cierres Comerciales',
+    tipo: 'Ventas',
+    meta_cantidad: 500000,
+    unidad: 'RD$',
+    periodo: 'Septiembre 2026',
+    usuario_id: null,
+    responsable: 'Equipo Comercial ITHOT',
+    avance_actual: 385000,
+    fecha_limite: '2026-09-30',
+  },
+  {
+    id: 3,
+    titulo: 'Meta Individual: Félix Robles (Ejecutivo)',
+    tipo: 'Prospectos',
+    meta_cantidad: 15,
+    unidad: 'prospectos',
+    periodo: 'Septiembre 2026',
+    usuario_id: 3,
+    responsable: 'Felix Manuel Robles',
+    avance_actual: 12,
+    fecha_limite: '2026-09-30',
+  },
+  {
+    id: 4,
+    titulo: 'Meta Individual: Armando Montes (Supervisor)',
+    tipo: 'Ventas',
+    meta_cantidad: 200000,
+    unidad: 'RD$',
+    periodo: 'Septiembre 2026',
+    usuario_id: 2,
+    responsable: 'Armando Montes de Oca Hesni',
+    avance_actual: 175000,
+    fecha_limite: '2026-09-30',
+  },
+];
+
+// Registros en Papelera (Reciclaje y Restauración)
+export const INITIAL_PAPELERA: RegistroPapeleraDB[] = [
+  {
+    id: 1,
+    entidad_tipo: 'Prospecto',
+    entidad_id: 99,
+    titulo: 'Comercializadora Caribeña de Bebidas',
+    detalles: 'Eliminado por duplicación de registro en importación masiva previa.',
+    datos_json: '{"empresa":"Comercializadora Caribeña","rnc":"1-32-99887-1"}',
+    usuario_elimino: 'Felix Manuel Robles',
+    fecha_eliminacion: '2026-09-28 16:40:00',
   },
 ];
 
@@ -928,6 +1167,34 @@ export const INITIAL_CAMPOS_PERSONALIZADOS: CampoPersonalizadoDB[] = [
     requerido: false,
     activo: true,
   },
+  {
+    id: 4,
+    modulo: 'Ambos',
+    nombre_campo: 'tamano_empresa',
+    etiqueta: 'Tamaño Empresa',
+    tipo: 'Selección',
+    opciones: ['Microempresa (1-10)', 'Pequeña (11-50)', 'Mediana (51-150)', 'Grande (+150 empleados)'],
+    requerido: false,
+    activo: true,
+  },
+  {
+    id: 5,
+    modulo: 'Ambos',
+    nombre_campo: 'sistema_actual',
+    etiqueta: 'Sistema Actual',
+    tipo: 'Texto',
+    requerido: false,
+    activo: true,
+  },
+  {
+    id: 6,
+    modulo: 'Ambos',
+    nombre_campo: 'cantidad_de_sucursales',
+    etiqueta: 'Cantidad de Sucursales',
+    tipo: 'Número',
+    requerido: false,
+    activo: true,
+  },
 ];
 
 // Registros Iniciales de Auditoría del Sistema
@@ -1049,6 +1316,11 @@ export function loadRelationalData(): {
   etapas: EtapaPipelineDB[];
   prospectos: ProspectoDB[];
   contactos: ContactoDB[];
+  empresas: EmpresaDB[];
+  comentarios: ComentarioDB[];
+  adjuntos: AdjuntoDB[];
+  objetivos: ObjetivoComercialDB[];
+  papelera: RegistroPapeleraDB[];
   seguimientos: SeguimientoDB[];
   tareas: TareaDB[];
   actividades: ActividadDB[];
@@ -1065,6 +1337,11 @@ export function loadRelationalData(): {
     const rawEtapas = localStorage.getItem(STORAGE_PREFIX + 'etapas');
     const rawProspectos = localStorage.getItem(STORAGE_PREFIX + 'prospectos');
     const rawContactos = localStorage.getItem(STORAGE_PREFIX + 'contactos');
+    const rawEmpresas = localStorage.getItem(STORAGE_PREFIX + 'empresas');
+    const rawComentarios = localStorage.getItem(STORAGE_PREFIX + 'comentarios');
+    const rawAdjuntos = localStorage.getItem(STORAGE_PREFIX + 'adjuntos');
+    const rawObjetivos = localStorage.getItem(STORAGE_PREFIX + 'objetivos');
+    const rawPapelera = localStorage.getItem(STORAGE_PREFIX + 'papelera');
     const rawSeguimientos = localStorage.getItem(STORAGE_PREFIX + 'seguimientos');
     const rawTareas = localStorage.getItem(STORAGE_PREFIX + 'tareas');
     const rawActividades = localStorage.getItem(STORAGE_PREFIX + 'actividades');
@@ -1093,6 +1370,11 @@ export function loadRelationalData(): {
       etapas: rawEtapas ? JSON.parse(rawEtapas) : INITIAL_ETAPAS_PIPELINE,
       prospectos: rawProspectos ? JSON.parse(rawProspectos) : INITIAL_PROSPECTOS,
       contactos: rawContactos ? JSON.parse(rawContactos) : INITIAL_CONTACTOS,
+      empresas: rawEmpresas ? JSON.parse(rawEmpresas) : INITIAL_EMPRESAS,
+      comentarios: rawComentarios ? JSON.parse(rawComentarios) : INITIAL_COMENTARIOS,
+      adjuntos: rawAdjuntos ? JSON.parse(rawAdjuntos) : INITIAL_ADJUNTOS,
+      objetivos: rawObjetivos ? JSON.parse(rawObjetivos) : INITIAL_OBJETIVOS,
+      papelera: rawPapelera ? JSON.parse(rawPapelera) : INITIAL_PAPELERA,
       seguimientos: rawSeguimientos ? JSON.parse(rawSeguimientos) : INITIAL_SEGUIMIENTOS,
       tareas: rawTareas ? JSON.parse(rawTareas) : INITIAL_TAREAS,
       actividades: rawActividades ? JSON.parse(rawActividades) : INITIAL_ACTIVIDADES,
@@ -1111,6 +1393,11 @@ export function loadRelationalData(): {
       etapas: INITIAL_ETAPAS_PIPELINE,
       prospectos: INITIAL_PROSPECTOS,
       contactos: INITIAL_CONTACTOS,
+      empresas: INITIAL_EMPRESAS,
+      comentarios: INITIAL_COMENTARIOS,
+      adjuntos: INITIAL_ADJUNTOS,
+      objetivos: INITIAL_OBJETIVOS,
+      papelera: INITIAL_PAPELERA,
       seguimientos: INITIAL_SEGUIMIENTOS,
       tareas: INITIAL_TAREAS,
       actividades: INITIAL_ACTIVIDADES,
@@ -1130,6 +1417,11 @@ export function saveRelationalData(data: {
   etapas: EtapaPipelineDB[];
   prospectos: ProspectoDB[];
   contactos: ContactoDB[];
+  empresas: EmpresaDB[];
+  comentarios: ComentarioDB[];
+  adjuntos: AdjuntoDB[];
+  objetivos: ObjetivoComercialDB[];
+  papelera: RegistroPapeleraDB[];
   seguimientos: SeguimientoDB[];
   tareas: TareaDB[];
   actividades: ActividadDB[];
@@ -1146,6 +1438,11 @@ export function saveRelationalData(data: {
     localStorage.setItem(STORAGE_PREFIX + 'etapas', JSON.stringify(data.etapas));
     localStorage.setItem(STORAGE_PREFIX + 'prospectos', JSON.stringify(data.prospectos));
     localStorage.setItem(STORAGE_PREFIX + 'contactos', JSON.stringify(data.contactos));
+    localStorage.setItem(STORAGE_PREFIX + 'empresas', JSON.stringify(data.empresas));
+    localStorage.setItem(STORAGE_PREFIX + 'comentarios', JSON.stringify(data.comentarios));
+    localStorage.setItem(STORAGE_PREFIX + 'adjuntos', JSON.stringify(data.adjuntos));
+    localStorage.setItem(STORAGE_PREFIX + 'objetivos', JSON.stringify(data.objetivos));
+    localStorage.setItem(STORAGE_PREFIX + 'papelera', JSON.stringify(data.papelera));
     localStorage.setItem(STORAGE_PREFIX + 'seguimientos', JSON.stringify(data.seguimientos));
     localStorage.setItem(STORAGE_PREFIX + 'tareas', JSON.stringify(data.tareas));
     localStorage.setItem(STORAGE_PREFIX + 'actividades', JSON.stringify(data.actividades));

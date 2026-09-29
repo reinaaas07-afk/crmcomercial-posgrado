@@ -136,12 +136,16 @@ export interface CalendarEvent {
 
 export type ActiveSection =
   | 'dashboard'
+  | 'empresas'
   | 'contactos'
   | 'prospectos'
   | 'pipeline'
   | 'seguimientos'
   | 'calendario'
   | 'tareas'
+  | 'objetivos'
+  | 'papelera'
+  | 'actividad'
   | 'reportes'
   | 'importar-exportar'
   | 'importaciones'

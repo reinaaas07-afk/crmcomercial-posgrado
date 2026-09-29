@@ -20,8 +20,17 @@ import {
   Shield,
   Briefcase,
   FileText,
+  Paperclip,
 } from 'lucide-react';
-import { ContactoDB, UsuarioDB, SeguimientoDB } from '../../types/schema';
+import {
+  ContactoDB,
+  UsuarioDB,
+  SeguimientoDB,
+  ComentarioDB,
+  AdjuntoDB,
+  RegistroAuditoriaDB,
+} from '../../types/schema';
+import { CommentsAndAttachments } from '../common/CommentsAndAttachments';
 
 interface ContactDrawerProps {
   contact: ContactoDB | null;
@@ -32,6 +41,12 @@ interface ContactDrawerProps {
   onConvertToOpportunity?: (contact: ContactoDB) => void;
   users: UsuarioDB[];
   seguimientos: SeguimientoDB[];
+  currentUser?: UsuarioDB;
+  comentarios?: ComentarioDB[];
+  adjuntos?: AdjuntoDB[];
+  onAddComentario?: (c: Omit<ComentarioDB, 'id'>) => void;
+  onAddAdjunto?: (a: Omit<AdjuntoDB, 'id'>) => void;
+  auditLogs?: RegistroAuditoriaDB[];
 }
 
 export const ContactDrawer: React.FC<ContactDrawerProps> = ({
@@ -43,7 +58,15 @@ export const ContactDrawer: React.FC<ContactDrawerProps> = ({
   onConvertToOpportunity,
   users,
   seguimientos,
+  currentUser,
+  comentarios = [],
+  adjuntos = [],
+  onAddComentario,
+  onAddAdjunto,
+  auditLogs = [],
 }) => {
+  const [activeTab, setActiveTab] = useState<'ficha' | 'comentarios' | 'historial'>('ficha');
+
   if (!isOpen || !contact) return null;
 
   const assignedUser = users.find((u) => u.id === contact.usuario_id) || users[0];
@@ -114,10 +137,51 @@ export const ContactDrawer: React.FC<ContactDrawerProps> = ({
           </div>
         </div>
 
+        {/* Subtabs Bar */}
+        <div className="flex items-center gap-2 px-5 pt-2 border-b border-slate-800 bg-slate-950/40">
+          <button
+            type="button"
+            onClick={() => setActiveTab('ficha')}
+            className={`pb-2.5 px-2 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'ficha'
+                ? 'border-blue-500 text-blue-400 font-bold'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Ficha de Contacto
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('comentarios')}
+            className={`pb-2.5 px-2 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'comentarios'
+                ? 'border-blue-500 text-blue-400 font-bold'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Paperclip className="w-3.5 h-3.5" />
+            <span>Comentarios & Adjuntos</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('historial')}
+            className={`pb-2.5 px-2 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'historial'
+                ? 'border-blue-500 text-blue-400 font-bold'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Historial de Cambios</span>
+          </button>
+        </div>
+
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          {/* Quick Action Bar */}
-          <div className="flex flex-wrap items-center gap-2">
+          {activeTab === 'ficha' && (
+            <div className="space-y-6">
+              {/* Quick Action Bar */}
+              <div className="flex flex-wrap items-center gap-2">
             {cleanPhone && (
               <a
                 href={waUrl}
@@ -321,6 +385,121 @@ export const ContactDrawer: React.FC<ContactDrawerProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'comentarios' && (
+        <div className="animate-in fade-in">
+          <CommentsAndAttachments
+            entidadTipo="contacto"
+            entidadId={contact.id}
+            entidadTitulo={`${contact.nombre} ${contact.apellido || ''} (${contact.empresa})`}
+            currentUser={currentUser || assignedUser}
+            comentarios={comentarios}
+            adjuntos={adjuntos}
+            onAddComentario={onAddComentario || (() => {})}
+            onAddAdjunto={onAddAdjunto || (() => {})}
+          />
+        </div>
+      )}
+
+      {activeTab === 'historial' && (
+        <div className="space-y-4 animate-in fade-in">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <h3 className="font-bold text-slate-100 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-blue-400" />
+              <span>Trazabilidad y Registro de Cambios</span>
+            </h3>
+            <span className="text-[11px] text-slate-400 font-mono">
+              Auditoría Inmutable MySQL
+            </span>
+          </div>
+
+          {(() => {
+            const fullName = `${contact.nombre} ${contact.apellido || ''}`.trim();
+            const contactAudits = auditLogs.filter(
+              (a) =>
+                a.registro_afectado?.toLowerCase().includes(fullName.toLowerCase()) ||
+                a.registro_afectado?.toLowerCase().includes(contact.empresa.toLowerCase()) ||
+                a.registro_afectado?.includes(String(contact.id)) ||
+                a.detalles?.toLowerCase().includes(fullName.toLowerCase())
+            );
+
+            return (
+              <div className="space-y-3">
+                {/* Evento de creación */}
+                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-200">Alta y Registro de Contacto</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-mono">
+                        {contact.fecha_registro}
+                      </span>
+                    </div>
+                    <p className="text-slate-400">
+                      <strong>Qué se realizó:</strong> Contacto creado con cargo "{contact.cargo}" en {contact.empresa}.
+                    </p>
+                    <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1">
+                      <span><strong>Quién:</strong> {assignedUser?.nombre || 'Administrador'}</span>
+                      <span><strong>Cuándo:</strong> {contact.fecha_registro}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {contactAudits.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            item.accion === 'Creación'
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                              : item.accion === 'Modificación'
+                              ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                              : item.accion === 'Eliminación'
+                              ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                              : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                          }`}
+                        >
+                          {item.accion}
+                        </span>
+                        <span className="font-semibold text-slate-200">{item.registro_afectado}</span>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-400">
+                        {item.fecha} {item.hora}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-900/90 rounded-lg p-2.5 border border-slate-800/80 space-y-1 text-slate-300">
+                      <p className="text-[11px]">
+                        <strong className="text-slate-200">Qué cambió: </strong>
+                        {item.detalles || `${item.accion} en ${item.modulo}: ${item.registro_afectado}`}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+                        <span>
+                          <strong className="text-slate-300">Quién lo cambió: </strong>
+                          {item.usuario}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          <strong className="text-slate-300">Cuándo se cambió: </strong>
+                          {item.fecha} a las {item.hora}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 {
   "name": "CRMComercial - Sistema CRM para Gestión de Prospectos",
-  "description": "Sistema CRM desarrollado como proyecto de posgrado. Backend Python Flask, SQLAlchemy, base de datos MySQL y frontend interactivo con arquitectura de software documentada.",
+  "description": "Plataforma empresarial multi-usuario CRMComercial para ITHOT. Backend Node.js, base de datos MySQL, frontend interactivo con trazabilidad en tiempo real, auditoría, metas comerciales y gestión integral de prospectos y empresas.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

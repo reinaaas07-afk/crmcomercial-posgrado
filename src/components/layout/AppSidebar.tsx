@@ -21,6 +21,10 @@ import {
   UserCheck,
   ShieldAlert,
   LogOut,
+  Building2,
+  Target,
+  Activity,
+  Trash2,
 } from 'lucide-react';
 import { SeccionApp, UsuarioDB, RolUsuario } from '../../types/schema';
 
@@ -31,9 +35,11 @@ interface AppSidebarProps {
   onToggleCollapse: () => void;
   currentUser: UsuarioDB;
   onRoleChange: (role: RolUsuario) => void;
+  empresasCount?: number;
   contactosCount: number;
   prospectosCount: number;
   tareasPendientesCount: number;
+  papeleraCount?: number;
   onOpenAcademicModal: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
@@ -49,9 +55,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onToggleCollapse,
   currentUser,
   onRoleChange,
+  empresasCount,
   contactosCount,
   prospectosCount,
   tareasPendientesCount,
+  papeleraCount,
   onOpenAcademicModal,
   isMobileOpen = false,
   onCloseMobile,
@@ -66,13 +74,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     badge?: number;
   }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'empresas', label: 'Empresas', icon: Building2, badge: empresasCount },
     { id: 'contactos', label: 'Contactos', icon: Contact, badge: contactosCount },
     { id: 'prospectos', label: 'Prospectos', icon: Users, badge: prospectosCount },
     { id: 'pipeline', label: 'Pipeline Comercial', icon: Kanban },
     { id: 'seguimientos', label: 'Seguimientos', icon: PhoneCall },
     { id: 'tareas', label: 'Tareas', icon: CheckSquare, badge: tareasPendientesCount },
     { id: 'calendario', label: 'Calendario', icon: Calendar },
+    { id: 'objetivos', label: 'Objetivos & Metas', icon: Target },
+    { id: 'actividad', label: 'Actividad en Vivo', icon: Activity },
     { id: 'reportes', label: 'Reportes', icon: BarChart3 },
+    { id: 'papelera', label: 'Papelera', icon: Trash2, badge: papeleraCount },
     { id: 'importaciones', label: 'Importaciones', icon: FileUp },
     { id: 'exportaciones', label: 'Exportaciones', icon: FileDown },
     { id: 'usuarios', label: 'Usuarios y Roles', icon: ShieldCheck, badge: allUsers.length || undefined },

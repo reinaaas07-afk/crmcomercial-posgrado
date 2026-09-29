@@ -19,6 +19,7 @@ import {
   CheckSquare,
   Square,
   FileSpreadsheet,
+  AlertTriangle,
 } from 'lucide-react';
 import { Lead, LeadSource, LeadStage, User } from '../../types/crm';
 import { PIPELINE_STAGES } from '../../data/mockData';
@@ -327,6 +328,15 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
                   const waUrl = `https://wa.me/${cleanPhone}?text=Hola%20${encodeURIComponent(lead.name)},%20te%20escribo%20respecto%20a%20tu%20consulta.`;
 
+                  // Overdue follow-up check: 7+ days without contact
+                  const isOverdue7Days = (() => {
+                    if (lead.stage === 'Ganado' || lead.stage === 'Perdido') return false;
+                    const dateToCheck = lead.ultima_interaccion || lead.createdAt || '2026-09-20';
+                    const diffTime = Math.abs(new Date('2026-09-29').getTime() - new Date(dateToCheck.split(' ')[0]).getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays >= 7 || !lead.nextFollowUpDate || lead.nextFollowUpDate < '2026-09-23';
+                  })();
+
                   return (
                     <tr
                       key={lead.id}
@@ -437,7 +447,17 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
                       {/* Próximo Seguimiento */}
                       <td className="py-3 px-3">
-                        {lead.nextFollowUpDate ? (
+                        {isOverdue7Days ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 w-fit">
+                              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                              <span>Seguimiento pendiente</span>
+                            </span>
+                            <span className="font-mono text-[10px] text-slate-500">
+                              {lead.nextFollowUpDate || 'Sin programar'}
+                            </span>
+                          </div>
+                        ) : lead.nextFollowUpDate ? (
                           <span className="font-mono text-[11px] text-amber-400 tabular-nums font-semibold">
                             {lead.nextFollowUpDate}
                           </span>
