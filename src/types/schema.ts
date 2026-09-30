@@ -95,7 +95,11 @@ export type FuenteProspecto =
   | 'LinkedIn'
   | 'Referido'
   | 'Evento / Feria'
-  | 'WhatsApp Inbound';
+  | 'WhatsApp Inbound'
+  | 'Importación Excel'
+  | 'Llamada en Frío'
+  | 'Prospección Directa'
+  | 'Otro';
 
 // Tabla: usuarios
 export interface UsuarioDB {
@@ -122,11 +126,13 @@ export interface UsuarioDB {
 export interface EmpresaDB {
   id: number;
   razon_social: string;
+  nombre_comercial?: string;
   rnc: string;
   telefono: string;
   email: string;
   direccion: string;
   ciudad: string;
+  provincia?: string;
   sector: string;
   sitio_web: string;
   industria: string;
@@ -300,7 +306,7 @@ export interface HistorialImportacionDB {
   hora: string;
   usuario: string;
   archivo: string;
-  tipo: 'Prospectos' | 'Oportunidades' | 'Contactos' | 'Seguimientos';
+  tipo: 'Prospectos' | 'Oportunidades' | 'Contactos' | 'Seguimientos' | 'Empresas';
   registros_procesados: number;
   registros_correctos: number;
   registros_con_error: number;
@@ -323,6 +329,8 @@ export interface HistorialExportacionDB {
 export type TipoAccionAuditoria =
   | 'Creación'
   | 'Actualización'
+  | 'Modificación'
+  | 'Edición'
   | 'Eliminación'
   | 'Cambio de Etapa'
   | 'Reasignación'
@@ -330,9 +338,11 @@ export type TipoAccionAuditoria =
   | 'Exportación'
   | 'Restablecimiento de Contraseña'
   | 'Activación / Desactivación'
-  | 'Inicio de Sesión';
+  | 'Inicio de Sesión'
+  | 'Cierre de Sesión';
 
 export type ModuloAfectado =
+  | 'Empresas'
   | 'Prospectos'
   | 'Contactos'
   | 'Pipeline'
@@ -342,7 +352,8 @@ export type ModuloAfectado =
   | 'Importaciones'
   | 'Exportaciones'
   | 'Usuarios y Roles'
-  | 'Configuración';
+  | 'Configuración'
+  | 'Seguridad';
 
 export interface RegistroAuditoriaDB {
   id: number;
@@ -408,6 +419,7 @@ export type SeccionApp =
   | 'seguimientos'
   | 'tareas'
   | 'calendario'
+  | 'alertas'
   | 'objetivos'
   | 'papelera'
   | 'actividad'

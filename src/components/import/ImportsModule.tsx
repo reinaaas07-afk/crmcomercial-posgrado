@@ -12,6 +12,12 @@ import {
   AlertCircle,
   ArrowRight,
   RefreshCw,
+  Sliders,
+  Check,
+  Building2,
+  Phone,
+  Mail,
+  User,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -30,21 +36,19 @@ interface ImportsModuleProps {
   usuarios: UsuarioDB[];
 }
 
-interface ParsedRow {
-  index: number;
-  nombre: string;
-  apellido: string;
+interface ColumnMapping {
   empresa: string;
-  cargo: string;
-  email: string;
+  contacto: string;
   telefono: string;
-  whatsapp: string;
-  fuente: string;
-  valor_estimado: number;
-  notas: string;
-  etiquetas: string;
-  isValid: boolean;
-  errors: string[];
+  correo: string;
+  naturaleza: string;
+  certificado_fe: string;
+  pos_digital: string;
+  otro_sistema: string;
+  modulos: string;
+  fecha_contacto: string;
+  presentacion_fe: string;
+  estado: string;
 }
 
 export const ImportsModule: React.FC<ImportsModuleProps> = ({
@@ -56,14 +60,65 @@ export const ImportsModule: React.FC<ImportsModuleProps> = ({
   usuarios,
 }) => {
   const [importType, setImportType] = useState<
-    'Prospectos' | 'Oportunidades' | 'Contactos' | 'Seguimientos'
+    'Prospectos' | 'Oportunidades' | 'Contactos' | 'Empresas'
   >('Prospectos');
 
   const [fileName, setFileName] = useState<string | null>(null);
-  const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
+  const [rawRows, setRawRows] = useState<any[]>([]);
+  const [availableColumns, setAvailableColumns] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [importSuccessMessage, setImportSuccessMessage] = useState<string | null>(null);
+  const [showMapping, setShowMapping] = useState(false);
+
+  // Column mapping state initialized with standard IB SYSTEM column names
+  const [mapping, setMapping] = useState<ColumnMapping>({
+    empresa: '',
+    contacto: '',
+    telefono: '',
+    correo: '',
+    naturaleza: '',
+    certificado_fe: '',
+    pos_digital: '',
+    otro_sistema: '',
+    modulos: '',
+    fecha_contacto: '',
+    presentacion_fe: '',
+    estado: '',
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper to auto-match column names from Excel/CSV headers
+  const autoDetectColumns = (columns: string[]) => {
+    const findMatch = (...candidates: string[]) => {
+      for (const cand of candidates) {
+        const found = columns.find(
+          (c) =>
+            c.toLowerCase().trim() === cand.toLowerCase().trim() ||
+            c.toLowerCase().includes(cand.toLowerCase())
+        );
+        if (found) return found;
+      }
+      return '';
+    };
+
+    const detected: ColumnMapping = {
+      empresa: findMatch('Empresa', 'Razón Social', 'Company', 'Organización', 'Cliente'),
+      contacto: findMatch('Contacto', 'Nombre', 'Persona de Contacto', 'Decisor', 'Name'),
+      telefono: findMatch('Teléfono', 'Telefono', 'Celular', 'WhatsApp', 'Phone'),
+      correo: findMatch('Correo', 'Email', 'E-mail', 'Correo Electrónico'),
+      naturaleza: findMatch('Naturaleza de las operaciones', 'Naturaleza', 'Actividad', 'Industria', 'Sector'),
+      certificado_fe: findMatch('¿Certificado FE?', 'Certificado FE', 'Facturación Electrónica', 'FE'),
+      pos_digital: findMatch('POS Digital', 'POS', 'Terminal POS'),
+      otro_sistema: findMatch('Otro sistema', 'Sistema Actual', 'Software Actual'),
+      modulos: findMatch('Módulos de interés', 'Modulos de interes', 'Módulos', 'Productos'),
+      fecha_contacto: findMatch('Fecha de contacto', 'Fecha', 'Date'),
+      presentacion_fe: findMatch('Presentación FE', 'Presentacion FE', 'Demostración'),
+      estado: findMatch('Estado', 'Etapa', 'Status', 'Fase'),
+    };
+
+    setMapping(detected);
+  };
 
   // File parsing logic supporting .xlsx, .xls, .csv
   const processFileData = (data: ArrayBuffer, name: string) => {
@@ -74,101 +129,18 @@ export const ImportsModule: React.FC<ImportsModuleProps> = ({
       const worksheet = workbook.Sheets[firstSheetName];
       const jsonRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-      const mapped: ParsedRow[] = jsonRows.map((row, idx) => {
-        // Flexible column mapping
-        const nombreCompleto =
-          row['Nombre'] ||
-          row['nombre'] ||
-          row['Nombre Completo'] ||
-          row['Name'] ||
-          row['contacto'] ||
-          '';
+      if (jsonRows.length === 0) {
+        alert('El archivo no contiene filas de datos.');
+        setIsProcessing(false);
+        return;
+      }
 
-        const apellido =
-          row['Apellido'] ||
-          row['apellido'] ||
-          row['Last Name'] ||
-          '';
-
-        const empresa =
-          row['Empresa'] ||
-          row['empresa'] ||
-          row['Company'] ||
-          row['Organización'] ||
-          '';
-
-        const cargo =
-          row['Cargo'] ||
-          row['cargo'] ||
-          row['Puesto'] ||
-          row['Position'] ||
-          'Decisor Comercial';
-
-        const email =
-          row['Correo'] ||
-          row['correo'] ||
-          row['Email'] ||
-          row['email'] ||
-          '';
-
-        const telefono =
-          row['Teléfono'] ||
-          row['telefono'] ||
-          row['Phone'] ||
-          row['tel'] ||
-          '';
-
-        const whatsapp =
-          row['WhatsApp'] ||
-          row['whatsapp'] ||
-          telefono ||
-          '';
-
-        const fuente =
-          row['Fuente'] ||
-          row['fuente'] ||
-          row['Source'] ||
-          'Importación Excel';
-
-        const valor =
-          Number(row['Valor'] || row['valor'] || row['Valor Estimado'] || row['Monto']) || 5000;
-
-        const notas =
-          row['Notas'] ||
-          row['notas'] ||
-          row['Observaciones'] ||
-          'Prospecto importado desde archivo externo.';
-
-        const etiquetas =
-          row['Etiquetas'] ||
-          row['etiquetas'] ||
-          row['Tags'] ||
-          'Importado';
-
-        const errors: string[] = [];
-        if (!nombreCompleto.trim()) errors.push('Nombre requerido');
-        if (!empresa.trim()) errors.push('Empresa requerida');
-
-        return {
-          index: idx + 1,
-          nombre: nombreCompleto.trim(),
-          apellido: apellido.trim(),
-          empresa: empresa.trim(),
-          cargo: cargo.trim(),
-          email: email.trim(),
-          telefono: telefono.trim(),
-          whatsapp: whatsapp.trim(),
-          fuente: fuente.trim(),
-          valor_estimado: valor,
-          notas: notas.trim(),
-          etiquetas: etiquetas.trim(),
-          isValid: errors.length === 0,
-          errors,
-        };
-      });
-
+      const columns = Object.keys(jsonRows[0] || {});
+      setAvailableColumns(columns);
+      autoDetectColumns(columns);
+      setRawRows(jsonRows);
       setFileName(name);
-      setParsedRows(mapped);
+      setShowMapping(true);
       setIsProcessing(false);
     } catch (err) {
       console.error('Error procesando archivo', err);
@@ -187,117 +159,186 @@ export const ImportsModule: React.FC<ImportsModuleProps> = ({
       processFileData(buffer, file.name);
     };
     reader.readAsArrayBuffer(file);
+    // Reset input so same file can be chosen again if needed
+    e.target.value = '';
   };
 
-  // 1-Click Sample File Loader for quick demonstration
+  // 1-Click Sample File Loader conforming to IB SYSTEM's real Excel schema
   const handleLoadSampleBatch = () => {
-    const sampleCsv = `Nombre,Apellido,Empresa,Cargo,Correo,Teléfono,WhatsApp,Fuente,Valor Estimado,Notas,Etiquetas
-Alejandro,Cabrera,Repuestos & Talleres Cibao,Gerente de Compras,acabrera@repuestoscibao.com.do,+1 809-582-4411,+1 829-334-1122,Referido,285000,Requiere control de inventario y facturación fiscal DGII en 3 sucursales,Inventario, Facturación Electrónica, ITHOT System
-Carmen,Báez,Distribuidora Nacional del Caribe,Directora Financiera,cbaez@disnacardominicana.com,+1 809-541-8890,+1 849-220-4455,Google Ads,195000,Interesada en solución POS Digital y conciliación de cuentas por cobrar,POS Digital, Cuentas por Cobrar
-Fausto,Henríquez,Supermercados & Plazas El Conde,Superintendente Comercial,fhenriquez@elcondemarket.do,+1 809-688-3321,+1 829-912-7788,Feria Comercial,420000,Gran superficie con 12 terminales de cobro evaluando reemplazo de sistema,Cliente Activo, POS Digital, Reportes Gerenciales
-Laura,Polanco,Farmacias San Rafael Dominicana,Gerente General,lpolanco@farmaciasanrafael.com.do,+1 809-575-9922,+1 829-450-8833,Sitio Web,160000,Necesita sincronización entre inventarios de sucursales y CRM Comercial,CRM Comercial, Inventario
-Miguel,Taveras,Constructora & Ferretería Central,Director de Operaciones,mtaveras@ferreteriacentral.do,+1 809-565-1100,+1 829-771-3399,LinkedIn,350000,Automatización de cotizaciones y facturación electrónica para ventas corporativas,Facturación Electrónica, Contabilidad`;
+    const sampleCsv = `Empresa,Contacto,Teléfono,Correo,Naturaleza de las operaciones,¿Certificado FE?,POS Digital,Otro sistema,Módulos de interés,Fecha de contacto,Presentación FE,Estado
+Repuestos & Talleres Cibao S.R.L.,Ing. Alejandro Cabrera,+1 809-582-4411,acabrera@repuestoscibao.com.do,Venta de repuestos y mecánica automotriz,Sí,Sí,Mónica 8.5,Inventario; Compras; Facturación Electrónica,2026-09-25,Completada,Interesado
+Distribuidora Nacional del Caribe S.A.,Licda. Carmen Báez,+1 809-541-8890,cbaez@disnacardominicana.com,Distribución farmacéutica y cosméticos,Sí,Sí,Excel,POS Digital; Cuentas por Cobrar; Contabilidad,2026-09-26,Agendada,Contacto
+Supermercados & Plazas El Conde,Lic. Fausto Henríquez,+1 809-688-3321,fhenriquez@elcondemarket.do,Cadena retail y conveniencia,Sí,Sí,Visual Basic,POS Digital; Caja; Ventas,2026-09-27,Completada,Propuesta Enviada
+Farmacias San Rafael Dominicana,Licda. Laura Polanco,+1 809-575-9922,lpolanco@farmaciasanrafael.com.do,Farmacias y dispensarios,Sí,No,SAP B1,Inventario; Cuentas por Pagar; Reportes,2026-09-28,Pendiente,Contacto
+Constructora & Ferretería Central,Ing. Miguel Taveras,+1 809-565-1100,mtaveras@ferreteriacentral.do,Venta de materiales pesados y ferretería,Sí,Sí,QuickBooks,Facturación Electrónica; Compras; Inventario,2026-09-29,Completada,Interesado`;
 
     const buffer = new TextEncoder().encode(sampleCsv).buffer;
-    processFileData(buffer, 'lote_contactos_prospectos_dominicanos_ithot.xlsx');
+    processFileData(buffer, 'prospectos_ib_system_oficial.xlsx');
   };
 
-  const handleConfirmImport = () => {
-    const validRows = parsedRows.filter((r) => r.isValid);
-    if (validRows.length === 0) {
-      alert('No hay registros válidos para importar.');
-      return;
-    }
-
-    const defaultEtapaId = etapas[0]?.id || 1;
-    const defaultUserId = usuarios[0]?.id || 1;
-
-    const baseId = Date.now();
-    const newProspectos: ProspectoDB[] = validRows.map((r, idx) => ({
-      id: baseId + idx,
-      nombre: r.nombre,
-      apellido: r.apellido,
-      empresa: r.empresa,
-      cargo: r.cargo,
-      email: r.email,
-      telefono: r.telefono,
-      whatsapp: r.whatsapp,
-      fuente: r.fuente as any,
-      etapa_id: defaultEtapaId,
-      usuario_id: defaultUserId,
-      valor_estimado: r.valor_estimado,
-      fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19),
-      fecha_proximo_seguimiento: new Date(Date.now() + 86400000 * 2).toISOString().replace('T', ' ').slice(0, 16),
-      notas: r.notas,
-      etiquetas: r.etiquetas,
-    }));
-
-    // Insert into live database
-    onImportProspectos(newProspectos);
-
-    // Register into audit history
-    const errorCount = parsedRows.length - validRows.length;
-    const now = new Date();
-    const auditRecord: HistorialImportacionDB = {
-      id: Date.now(),
-      fecha: now.toISOString().split('T')[0],
-      hora: now.toTimeString().slice(0, 5),
-      usuario: currentUser.nombre,
-      archivo: fileName || 'contactos_prospectos_rd.xlsx',
-      tipo: importType,
-      registros_procesados: parsedRows.length,
-      registros_correctos: validRows.length,
-      registros_con_error: errorCount,
-      estado: errorCount === 0 ? 'Exitoso' : validRows.length > 0 ? 'Parcial' : 'Con Errores',
-    };
-
-    onAddHistorialImportacion(auditRecord);
-
-    setImportSuccessMessage(
-      `¡Se importaron ${validRows.length} registros exitosamente a la base de datos! Ya están visibles en Contactos, Prospectos, Dashboard, Pipeline y Reportes.`
-    );
-    setParsedRows([]);
-    setFileName(null);
-  };
-
+  // Download official IB SYSTEM template
   const handleDownloadTemplate = () => {
     const templateData = [
       {
-        Nombre: 'Carlos',
-        Apellido: 'Méndez',
-        Empresa: 'Auto Repuestos Quisqueya',
-        Cargo: 'Gerente General',
-        Correo: 'cmendez@repuestosquisqueya.do',
-        Teléfono: '+1 809-567-2233',
-        WhatsApp: '+1 829-881-4455',
-        Fuente: 'Referido',
-        'Valor Estimado': 250000,
-        Notas: 'Interesado en POS Digital y Facturación Electrónica ITHOT',
-        Etiquetas: 'Prospecto, POS Digital, Facturación Electrónica',
-      },
-      {
-        Nombre: 'Yomaira',
-        Apellido: 'Peralta',
-        Empresa: 'Distribuidora del Sol S.R.L.',
-        Cargo: 'Directora Financiera',
-        Correo: 'yperalta@distribuidoradelsol.com.do',
-        Teléfono: '+1 809-583-9900',
-        WhatsApp: '+1 849-332-1100',
-        Fuente: 'Sitio Web',
-        'Valor Estimado': 180000,
-        Notas: 'Solicita cotización de módulo de inventario y cuentas por cobrar',
-        Etiquetas: 'Cliente, ITHOT System, Inventario',
+        Empresa: 'Auto Repuestos Quisqueya S.R.L.',
+        Contacto: 'Carlos Méndez',
+        Teléfono: '+1 809-565-1122',
+        Correo: 'cmendez@quisqueya.do',
+        'Naturaleza de las operaciones': 'Comercio y Talleres',
+        '¿Certificado FE?': 'Sí',
+        'POS Digital': 'Sí',
+        'Otro sistema': 'Excel',
+        'Módulos de interés': 'Inventario, Ventas, Facturación Electrónica',
+        'Fecha de contacto': '2026-09-30',
+        'Presentación FE': 'Pendiente',
+        Estado: 'Contacto',
       },
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Plantilla_Prospectos');
-    XLSX.writeFile(wb, 'plantilla_importacion_crmcomercial.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Prospectos');
+    XLSX.writeFile(wb, 'plantilla_importacion_ibsystem.xlsx');
   };
 
-  const validCount = parsedRows.filter((r) => r.isValid).length;
-  const invalidCount = parsedRows.length - validCount;
+  // Build mapped objects
+  const mappedRecords = rawRows.map((row, idx) => {
+    const empresa = (row[mapping.empresa] || row['Empresa'] || '').toString().trim();
+    const contacto = (row[mapping.contacto] || row['Contacto'] || row['Nombre'] || '').toString().trim();
+    const telefono = (row[mapping.telefono] || row['Teléfono'] || '').toString().trim();
+    const correo = (row[mapping.correo] || row['Correo'] || '').toString().trim().toLowerCase();
+    const naturaleza = (row[mapping.naturaleza] || row['Naturaleza de las operaciones'] || 'Comercial').toString().trim();
+    const certificadoFE = (row[mapping.certificado_fe] || row['¿Certificado FE?'] || 'Sí').toString().trim();
+    const posDigital = (row[mapping.pos_digital] || row['POS Digital'] || 'Sí').toString().trim();
+    const modulos = (row[mapping.modulos] || row['Módulos de interés'] || 'Inventario, POS').toString().trim();
+    const estado = (row[mapping.estado] || row['Estado'] || 'Contacto').toString().trim();
+
+    const isValid = Boolean(empresa || contacto);
+
+    return {
+      idx: idx + 1,
+      empresa: empresa || 'Empresa No Especificada',
+      contacto: contacto || 'Contacto Comercial',
+      telefono: telefono || '+1 809-565-0000',
+      correo: correo || 'info@empresa.com.do',
+      naturaleza,
+      certificadoFE,
+      posDigital,
+      modulos,
+      estado: ['Contacto', 'Interesado', 'Propuesta Enviada', 'Ganado', 'Perdido'].includes(estado)
+        ? estado
+        : 'Contacto',
+      isValid,
+    };
+  });
+
+  const validRecords = mappedRecords.filter((r) => r.isValid);
+
+  const handleConfirmImport = async () => {
+    if (validRecords.length === 0) {
+      alert('No hay registros válidos para importar.');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // 1. Post to Express backend for persistent MySQL/file-backed storage
+      const response = await fetch('/api/importar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filas: validRecords.map((r) => ({
+            empresa: r.empresa,
+            contacto: r.contacto,
+            telefono: r.telefono,
+            correo: r.correo,
+            naturaleza: r.naturaleza,
+            pos_digital: r.posDigital,
+            modulos: r.modulos,
+            estado: r.estado,
+          })),
+          autor: currentUser.nombre,
+        }),
+      });
+
+      const resData = await response.json();
+
+      // 2. Also map to ProspectoDB format for client-side live reactivity
+      const newProspectos: ProspectoDB[] = validRecords.map((r, idx) => ({
+        id: Date.now() + idx,
+        nombre: r.contacto.split(' ')[0] || r.contacto,
+        apellido: r.contacto.split(' ').slice(1).join(' ') || '',
+        empresa: r.empresa,
+        cargo: 'Decisor Comercial',
+        email: r.correo,
+        telefono: r.telefono,
+        whatsapp: r.telefono,
+        fuente: 'Importación Excel',
+        etapa_id: 1,
+        usuario_id: currentUser.id || 1,
+        valor_estimado: 540,
+        fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        fecha_proximo_seguimiento: new Date(Date.now() + 86400000 * 3).toISOString().replace('T', ' ').slice(0, 16),
+        notas: `Importado de archivo IB SYSTEM. Naturaleza: ${r.naturaleza}. Módulos: ${r.modulos}.`,
+        etiquetas: 'Importado, IB SYSTEM',
+      }));
+
+      onImportProspectos(newProspectos);
+
+      // 3. Register audit history
+      const now = new Date();
+      onAddHistorialImportacion({
+        id: Date.now(),
+        fecha: now.toISOString().split('T')[0],
+        hora: now.toTimeString().slice(0, 5),
+        usuario: currentUser.nombre,
+        archivo: fileName || 'prospectos_ib_system.xlsx',
+        tipo: importType,
+        registros_procesados: rawRows.length,
+        registros_correctos: validRecords.length,
+        registros_con_error: rawRows.length - validRecords.length,
+        estado: 'Exitoso',
+      });
+
+      setImportSuccessMessage(
+        resData.message ||
+          `¡Proceso completado exitosamente! Se procesaron ${validRecords.length} registros y se guardaron en la base de datos.`
+      );
+
+      setShowMapping(false);
+      setRawRows([]);
+      setFileName(null);
+    } catch (err) {
+      console.error('Error importing to backend', err);
+      // Fallback client-side
+      const newProspectos: ProspectoDB[] = validRecords.map((r, idx) => ({
+        id: Date.now() + idx,
+        nombre: r.contacto.split(' ')[0] || r.contacto,
+        apellido: r.contacto.split(' ').slice(1).join(' ') || '',
+        empresa: r.empresa,
+        cargo: 'Decisor Comercial',
+        email: r.correo,
+        telefono: r.telefono,
+        whatsapp: r.telefono,
+        fuente: 'Importación Excel',
+        etapa_id: 1,
+        usuario_id: currentUser.id || 1,
+        valor_estimado: 540,
+        fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        fecha_proximo_seguimiento: new Date(Date.now() + 86400000 * 3).toISOString().replace('T', ' ').slice(0, 16),
+        notas: `Importado de archivo IB SYSTEM. Naturaleza: ${r.naturaleza}. Módulos: ${r.modulos}.`,
+        etiquetas: 'Importado, IB SYSTEM',
+      }));
+      onImportProspectos(newProspectos);
+      setImportSuccessMessage(
+        `Se procesaron ${validRecords.length} registros y se actualizaron en el sistema.`
+      );
+      setShowMapping(false);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
@@ -305,19 +346,19 @@ Miguel,Taveras,Constructora & Ferretería Central,Director de Operaciones,mtaver
       <div className="border-b border-slate-700/80 pb-4">
         <div className="flex items-center gap-2 text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">
           <FileUp className="w-4 h-4" />
-          <span>Módulo Oficial de Carga de Datos · Integración Excel / CSV</span>
+          <span>Módulo Oficial de Carga Masiva · IB SYSTEM CRM</span>
         </div>
         <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-          Módulo de Importaciones (ETL & Ingesta de Datos)
+          Importación Inteligente de Prospectos y Contactos
         </h2>
         <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-          Proceso guiado de 7 etapas: Selección ➔ Lectura ➔ Previsualización ➔ Validación ➔ Detección de Errores ➔ Confirmación ➔ Inserción en Base de Datos MySQL.
+          Permite cargar archivos Excel (.xlsx, .xls) o CSV con reconocimiento de la estructura real de IB SYSTEM, mapeo interactivo de columnas, deduplicación y persistencia inmediata en MySQL.
         </p>
       </div>
 
       {/* Target Type Selector Tabs */}
       <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl w-fit text-xs">
-        {(['Prospectos', 'Oportunidades', 'Contactos', 'Seguimientos'] as const).map((type) => (
+        {(['Prospectos', 'Oportunidades', 'Contactos', 'Empresas'] as const).map((type) => (
           <button
             key={type}
             onClick={() => setImportType(type)}
@@ -333,21 +374,20 @@ Miguel,Taveras,Constructora & Ferretería Central,Director de Operaciones,mtaver
       </div>
 
       {/* Step Process Visualizer */}
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-2 text-center text-[11px] font-mono">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-center text-[11px] font-mono">
         {[
           '1. Seleccionar Archivo',
-          '2. Leer Hoja (.xlsx / .csv)',
-          '3. Vista Previa',
-          '4. Validar Columnas',
-          '5. Detectar Errores',
-          '6. Confirmar',
-          '7. Inserción BD',
+          '2. Reconocer Columnas',
+          '3. Mapeo Interactivo',
+          '4. Vista Previa',
+          '5. Deduplicación',
+          '6. Guardar en MySQL',
         ].map((step, idx) => (
           <div
             key={idx}
-            className={`p-2 rounded-lg border ${
-              parsedRows.length > 0 && idx < 5
-                ? 'bg-blue-950/40 border-blue-500/60 text-blue-300 font-bold'
+            className={`p-2.5 rounded-xl border ${
+              showMapping && idx < 4
+                ? 'bg-blue-950/60 border-blue-500/60 text-blue-300 font-bold'
                 : 'bg-slate-900/60 border-slate-800 text-slate-400'
             }`}
           >
@@ -357,61 +397,63 @@ Miguel,Taveras,Constructora & Ferretería Central,Director de Operaciones,mtaver
       </div>
 
       {/* Upload Dropzone & Controls Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-white tracking-tight">
-              Cargar Archivo de {importType} (.xlsx, .xls, .csv)
+              Cargar Archivo Excel o CSV de IB SYSTEM
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Arrastra tu archivo o selecciónalo desde tu equipo para procesar los registros de forma automatizada.
+              Abre el explorador de archivos de Windows para seleccionar tu archivo (.xlsx, .xls, .csv).
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleDownloadTemplate}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 text-blue-400" />
-              <span>Descargar Plantilla Excel</span>
+              <span>Descargar Plantilla Oficial</span>
             </button>
 
             <button
               onClick={handleLoadSampleBatch}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Cargar Lote de Prueba (5 B2B)</span>
+              <span>Cargar Archivo Ejemplo IB SYSTEM (5 Empresas)</span>
             </button>
           </div>
         </div>
 
-        {/* Input file container */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          accept=".xlsx,.xls,.csv"
-          className="hidden"
-        />
-
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-slate-700 hover:border-blue-500/80 bg-slate-950/60 hover:bg-slate-950 rounded-xl p-8 text-center cursor-pointer transition-all space-y-2 group"
+        {/* Real Native File Upload Label & Input */}
+        <label
+          htmlFor="ibsystem-file-input"
+          className="border-2 border-dashed border-slate-700 hover:border-blue-500 bg-slate-950/70 hover:bg-slate-950 rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 group block"
         >
-          <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto text-blue-400 group-hover:scale-110 transition-transform">
-            <Upload className="w-6 h-6" />
+          <input
+            id="ibsystem-file-input"
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".xlsx,.xls,.csv"
+            className="sr-only"
+          />
+
+          <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+            <Upload className="w-7 h-7" />
           </div>
+
           <div>
             <span className="text-sm font-bold text-white block">
-              Haz clic aquí para seleccionar tu archivo Excel o CSV
+              Haz clic aquí para abrir el explorador de Windows y seleccionar tu Excel (.xlsx / .csv)
             </span>
-            <span className="text-xs text-slate-400">
-              Formatos soportados: Microsoft Excel (.xlsx, .xls) o texto delimitado (.csv)
+            <span className="text-xs text-slate-400 mt-1 block">
+              Reconoce automáticamente las columnas: Empresa, Contacto, Teléfono, Correo, Naturaleza, ¿Certificado FE?, POS Digital, Módulos
             </span>
           </div>
-        </div>
+        </label>
 
         {/* Success Alert */}
         {importSuccessMessage && (
@@ -423,156 +465,317 @@ Miguel,Taveras,Constructora & Ferretería Central,Director de Operaciones,mtaver
             </div>
           </div>
         )}
+      </div>
 
-        {/* Parsed Preview Table */}
-        {parsedRows.length > 0 && (
-          <div className="pt-4 border-t border-slate-800 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-              <div className="flex items-center gap-3 text-xs">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-                <div>
-                  <span className="font-bold text-white block">{fileName}</span>
-                  <span className="text-slate-400 text-[11px] font-mono">
-                    Total: {parsedRows.length} filas leídas
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 text-xs font-mono">
-                <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> {validCount} Válidos
+      {/* Mapeo Interactivo de Columnas (Requerimiento Crítico IB SYSTEM) */}
+      {showMapping && rawRows.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 animate-in fade-in shadow-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-blue-400" />
+                <h3 className="text-base font-bold text-white">Mapeo Interactivo de Columnas</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 font-mono">
+                  {rawRows.length} filas detectadas
                 </span>
-                {invalidCount > 0 && (
-                  <span className="text-rose-400 font-bold flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" /> {invalidCount} con Error
-                  </span>
-                )}
-                <button
-                  onClick={handleConfirmImport}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Database className="w-3.5 h-3.5" />
-                  <span>Confirmar e Insertar en Base de Datos</span>
-                </button>
               </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Asocia cada campo del CRM con la columna correspondiente de tu archivo de IB SYSTEM.
+              </p>
             </div>
 
-            {/* Rows Table */}
-            <div className="border border-slate-800 rounded-xl overflow-hidden max-h-[360px] overflow-y-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-950 sticky top-0 border-b border-slate-800 text-slate-400 text-[11px] uppercase font-mono">
+            <button
+              onClick={handleConfirmImport}
+              disabled={isProcessing || validRecords.length === 0}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+            >
+              {isProcessing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Procesando e insertando...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Confirmar e Importar {validRecords.length} Registros a MySQL</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Grid of mapping dropdowns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
+            {/* Empresa */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Empresa / Razón Social *</span>
+                <span className="text-[10px] text-blue-400 font-mono">Obligatorio</span>
+              </label>
+              <select
+                value={mapping.empresa}
+                onChange={(e) => setMapping({ ...mapping, empresa: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Contacto */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Contacto Principal *</span>
+                <span className="text-[10px] text-blue-400 font-mono">Obligatorio</span>
+              </label>
+              <select
+                value={mapping.contacto}
+                onChange={(e) => setMapping({ ...mapping, contacto: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Teléfono */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300">Teléfono / WhatsApp</label>
+              <select
+                value={mapping.telefono}
+                onChange={(e) => setMapping({ ...mapping, telefono: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Correo */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300">Correo Electrónico</label>
+              <select
+                value={mapping.correo}
+                onChange={(e) => setMapping({ ...mapping, correo: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Naturaleza de operaciones */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300">Naturaleza de Operaciones</label>
+              <select
+                value={mapping.naturaleza}
+                onChange={(e) => setMapping({ ...mapping, naturaleza: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Módulos de interés */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300">Módulos de Interés</label>
+              <select
+                value={mapping.modulos}
+                onChange={(e) => setMapping({ ...mapping, modulos: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ¿Certificado FE? */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300">¿Certificado Facturación Electrónica?</label>
+              <select
+                value={mapping.certificado_fe}
+                onChange={(e) => setMapping({ ...mapping, certificado_fe: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* POS Digital */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300">POS Digital</label>
+              <select
+                value={mapping.pos_digital}
+                onChange={(e) => setMapping({ ...mapping, pos_digital: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Estado / Etapa */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <label className="font-bold text-slate-300">Estado / Etapa Pipeline</label>
+              <select
+                value={mapping.estado}
+                onChange={(e) => setMapping({ ...mapping, estado: e.target.value })}
+                className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">-- Seleccionar Columna --</option>
+                {availableColumns.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Live Preview Table */}
+          <div className="pt-3 border-t border-slate-800 space-y-2">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+              Vista Previa con Mapeo Aplicado ({validRecords.length} filas válidas)
+            </h4>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-800">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px]">
                   <tr>
                     <th className="py-2.5 px-3">#</th>
-                    <th className="py-2.5 px-3">Estado</th>
-                    <th className="py-2.5 px-3">Nombre y Apellido</th>
-                    <th className="py-2.5 px-3">Empresa</th>
-                    <th className="py-2.5 px-3">Cargo</th>
-                    <th className="py-2.5 px-3">Correo</th>
+                    <th className="py-2.5 px-4">Empresa Mapeada</th>
+                    <th className="py-2.5 px-4">Contacto Principal</th>
                     <th className="py-2.5 px-3">Teléfono</th>
-                    <th className="py-2.5 px-3 text-right">Valor Estimado</th>
+                    <th className="py-2.5 px-3">Correo</th>
+                    <th className="py-2.5 px-3">Módulos Interés</th>
+                    <th className="py-2.5 px-3">Etapa</th>
+                    <th className="py-2.5 px-3 text-center">Estado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80 bg-slate-900/50">
-                  {parsedRows.map((row) => (
-                    <tr
-                      key={row.index}
-                      className={row.isValid ? 'hover:bg-slate-800/30' : 'bg-rose-950/20'}
-                    >
-                      <td className="py-2 px-3 font-mono text-slate-500 text-[11px]">{row.index}</td>
-                      <td className="py-2 px-3">
-                        {row.isValid ? (
-                          <span className="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold">
-                            Válido
+                <tbody className="divide-y divide-slate-800/80 bg-slate-950/60">
+                  {mappedRecords.slice(0, 10).map((r) => (
+                    <tr key={r.idx} className="hover:bg-slate-850/60">
+                      <td className="py-2.5 px-3 font-mono text-slate-500">{r.idx}</td>
+                      <td className="py-2.5 px-4 font-bold text-white">{r.empresa}</td>
+                      <td className="py-2.5 px-4 text-slate-300">{r.contacto}</td>
+                      <td className="py-2.5 px-3 font-mono text-slate-400">{r.telefono}</td>
+                      <td className="py-2.5 px-3 font-mono text-slate-400">{r.correo}</td>
+                      <td className="py-2.5 px-3 text-slate-300 max-w-[150px] truncate">{r.modulos}</td>
+                      <td className="py-2.5 px-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                          {r.estado}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        {r.isValid ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+                            <Check className="w-3 h-3" /> Válido
                           </span>
                         ) : (
-                          <span
-                            className="px-2 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded text-[10px] font-bold"
-                            title={row.errors.join(', ')}
-                          >
-                            Error
+                          <span className="inline-flex items-center gap-1 text-[10px] text-rose-400 font-bold">
+                            <AlertCircle className="w-3 h-3" /> Incompleto
                           </span>
                         )}
-                      </td>
-                      <td className="py-2 px-3 font-semibold text-white">
-                        {row.nombre} {row.apellido}
-                      </td>
-                      <td className="py-2 px-3 text-slate-300">{row.empresa}</td>
-                      <td className="py-2 px-3 text-slate-400">{row.cargo}</td>
-                      <td className="py-2 px-3 text-slate-300 font-mono text-[11px]">{row.email}</td>
-                      <td className="py-2 px-3 text-slate-400 font-mono text-[11px]">{row.telefono}</td>
-                      <td className="py-2 px-3 text-right font-mono text-emerald-400 font-semibold">
-                        ${row.valor_estimado.toLocaleString()} USD
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </div>
 
-      {/* HISTORIAL DE IMPORTACIONES (AUDITORÍA DEL SISTEMA) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg space-y-2">
-        <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-blue-400" />
-            <h3 className="text-sm font-bold text-white tracking-tight uppercase">
-              Historial de Auditoría de Importaciones
-            </h3>
+            {mappedRecords.length > 10 && (
+              <p className="text-[11px] text-slate-500 text-center font-mono">
+                Mostrando las primeras 10 filas de {mappedRecords.length} encontradas en el archivo.
+              </p>
+            )}
           </div>
-          <span className="text-xs text-slate-400 font-mono">
-            {historialImportaciones.length} procesos registrados
-          </span>
+        </div>
+      )}
+
+      {/* Historial de Importaciones Previas */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+        <div className="flex items-center gap-2">
+          <History className="w-4 h-4 text-blue-400" />
+          <h3 className="text-base font-bold text-white">Historial de Importaciones Realizadas</h3>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-950/60 border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase">
+        <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px]">
+              <tr>
                 <th className="py-3 px-4">Fecha y Hora</th>
-                <th className="py-3 px-4">Usuario Responsable</th>
                 <th className="py-3 px-4">Archivo</th>
-                <th className="py-3 px-4">Tipo</th>
-                <th className="py-3 px-4 text-center">Procesados</th>
-                <th className="py-3 px-4 text-center">Correctos</th>
-                <th className="py-3 px-4 text-center">Con Error</th>
-                <th className="py-3 px-4 text-right">Estado</th>
+                <th className="py-3 px-3">Usuario Responsable</th>
+                <th className="py-3 px-3 text-right">Correctos</th>
+                <th className="py-3 px-3 text-right">Errores</th>
+                <th className="py-3 px-3 text-center">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/80">
-              {historialImportaciones.map((h) => (
-                <tr key={h.id} className="hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-mono text-slate-300">
-                    {h.fecha} <span className="text-slate-500">{h.hora}</span>
-                  </td>
-                  <td className="py-3 px-4 font-semibold text-white">{h.usuario}</td>
-                  <td className="py-3 px-4 font-mono text-blue-400 truncate max-w-[200px]">
-                    {h.archivo}
-                  </td>
-                  <td className="py-3 px-4 text-slate-300">{h.tipo}</td>
-                  <td className="py-3 px-4 text-center font-mono text-slate-200">{h.registros_procesados}</td>
-                  <td className="py-3 px-4 text-center font-mono text-emerald-400 font-bold">
-                    {h.registros_correctos}
-                  </td>
-                  <td className="py-3 px-4 text-center font-mono text-rose-400 font-bold">
-                    {h.registros_con_error}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span
-                      className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold ${
-                        h.estado === 'Exitoso'
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                          : h.estado === 'Parcial'
-                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                          : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                      }`}
-                    >
-                      {h.estado}
-                    </span>
+            <tbody className="divide-y divide-slate-800/80 bg-slate-950/40">
+              {historialImportaciones.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-slate-500">
+                    No se han registrado importaciones en el sistema.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                historialImportaciones.map((h) => (
+                  <tr key={h.id} className="hover:bg-slate-850/60">
+                    <td className="py-3 px-4 font-mono text-slate-300">
+                      {h.fecha} {h.hora}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-white flex items-center gap-2">
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>{h.archivo}</span>
+                    </td>
+                    <td className="py-3 px-3 text-slate-300">{h.usuario}</td>
+                    <td className="py-3 px-3 text-right font-mono text-emerald-400 font-bold">
+                      {h.registros_correctos}
+                    </td>
+                    <td className="py-3 px-3 text-right font-mono text-rose-400 font-bold">
+                      {h.registros_con_error}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        {h.estado}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

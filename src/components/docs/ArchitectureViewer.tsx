@@ -48,7 +48,7 @@ export const ArchitectureViewer: React.FC = () => {
             Arquitectura en Capas & Repositorio Backend
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Stack: Python 3.11+, Flask REST API, SQLAlchemy 3.x, MySQL 8.0 y Frontend Bootstrap 5.
+            Stack: Node.js, Express.js REST API, MySQL 8.0 (InnoDB), HTML5, CSS3 y JavaScript Puro (Vanilla) para Visual Studio Code.
           </p>
         </div>
 

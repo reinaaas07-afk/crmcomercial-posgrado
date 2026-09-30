@@ -188,10 +188,51 @@ export default function App() {
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [isAcademicModalOpen, setIsAcademicModalOpen] = useState(false);
 
-  // Synchronize state changes to localStorage
+  // Synchronize state changes to localStorage & backend persistent storage
   useEffect(() => {
     saveRelationalData(dbState);
+    // Push sync to backend to ensure permanent file system & MySQL persistence
+    fetch('/api/db/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        empresas: dbState.empresas,
+        contactos: dbState.contactos,
+        prospectos: dbState.prospectos,
+        usuarios: dbState.usuarios,
+        seguimientos: dbState.seguimientos,
+        tareas: dbState.tareas,
+      }),
+    }).catch(() => {
+      // Background sync silent catch
+    });
   }, [dbState]);
+
+  // Initial load from backend database (ensuring permanent persistence across refreshes and sessions)
+  useEffect(() => {
+    fetch('/api/db/all')
+      .then((res) => {
+        if (!res.ok) throw new Error('Servidor offline');
+        return res.json();
+      })
+      .then((serverData) => {
+        if (serverData && serverData.empresas) {
+          setDbState((prev) => ({
+            ...prev,
+            empresas: serverData.empresas && serverData.empresas.length > 0 ? serverData.empresas : prev.empresas,
+            contactos: serverData.contactos && serverData.contactos.length > 0 ? serverData.contactos : prev.contactos,
+            prospectos: serverData.prospectos && serverData.prospectos.length > 0 ? serverData.prospectos : prev.prospectos,
+            usuarios: serverData.usuarios && serverData.usuarios.length > 0 ? serverData.usuarios : prev.usuarios,
+            seguimientos: serverData.seguimientos && serverData.seguimientos.length > 0 ? serverData.seguimientos : prev.seguimientos,
+            tareas: serverData.tareas && serverData.tareas.length > 0 ? serverData.tareas : prev.tareas,
+            registrosAuditoria: serverData.auditoria && serverData.auditoria.length > 0 ? serverData.auditoria : prev.registrosAuditoria,
+          }));
+        }
+      })
+      .catch((err) => {
+        console.info('[Persistencia] Iniciando con estado local verificado:', err);
+      });
+  }, []);
 
   // Current User computed from simulated role or selected colleague
   const currentUserDB = useMemo(() => {
@@ -229,6 +270,19 @@ export default function App() {
       detalles,
       ip_simulada: '190.167.34.12',
     };
+
+    fetch('/api/auditoria', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario: userName,
+        usuario_id: currentUserDB.id,
+        accion,
+        modulo,
+        registro_afectado: registro,
+        detalles,
+      }),
+    }).catch(() => {});
 
     setDbState((prev) => {
       let updatedNotifs = prev.notificaciones;
@@ -451,6 +505,13 @@ export default function App() {
       return { ...prev, contactos: updated };
     });
 
+    // Persist to server API
+    fetch(isNew ? '/api/contactos' : `/api/contactos/${contactData.id}`, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...contactData, autor: currentUserDB.nombre }),
+    }).catch((err) => console.error('Error guardando contacto en backend:', err));
+
     recordAuditAndNotify(
       isNew ? 'Creación' : 'Actualización',
       'Contactos',
@@ -482,6 +543,11 @@ export default function App() {
       contactos: prev.contactos.filter((c) => c.id !== contactId),
       papelera: [trashRecord, ...prev.papelera],
     }));
+
+    // Call server delete
+    fetch(`/api/contactos/${contactId}?autor=${encodeURIComponent(currentUserDB.nombre)}`, {
+      method: 'DELETE',
+    }).catch((err) => console.error('Error eliminando contacto en backend:', err));
 
     if (selectedContact?.id === contactId) {
       setIsContactDrawerOpen(false);
@@ -637,6 +703,24 @@ export default function App() {
       };
     });
 
+    // Persist to server API
+    fetch(isNew ? '/api/prospectos' : `/api/prospectos/${rawId}`, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...leadData,
+        empresa: leadData.company,
+        contacto_principal: leadData.name,
+        telefono: leadData.phone,
+        correo: leadData.email,
+        etapa: leadData.stage || 'Contacto',
+        plan_seleccionado: 'PYME',
+        valor_estimado: leadData.estimatedValue || 0,
+        responsable_comercial: currentUserDB.nombre,
+        autor: currentUserDB.nombre,
+      }),
+    }).catch((err) => console.error('Error guardando prospecto en backend:', err));
+
     recordAuditAndNotify(
       isNew ? 'Creación' : 'Actualización',
       'Prospectos',
@@ -670,6 +754,11 @@ export default function App() {
       papelera: [trashRecord, ...prev.papelera],
     }));
 
+    // Call server delete
+    fetch(`/api/prospectos/${rawId}?autor=${encodeURIComponent(currentUserDB.nombre)}`, {
+      method: 'DELETE',
+    }).catch((err) => console.error('Error eliminando prospecto en backend:', err));
+
     if (selectedLeadId === rawId) {
       setIsLeadDrawerOpen(false);
       setSelectedLeadId(null);
@@ -699,6 +788,13 @@ export default function App() {
         : prev.empresas.map((e) => (e.id === companyId ? newCompany : e)),
     }));
 
+    // Persist to server API
+    fetch(isNew ? '/api/empresas' : `/api/empresas/${companyId}`, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newCompany, autor: currentUserDB.nombre }),
+    }).catch((err) => console.error('Error guardando empresa en backend:', err));
+
     recordAuditAndNotify(
       isNew ? 'Creación' : 'Actualización',
       'Configuración',
@@ -727,6 +823,11 @@ export default function App() {
       empresas: prev.empresas.filter((e) => e.id !== id),
       papelera: [trashRecord, ...prev.papelera],
     }));
+
+    // Call server delete
+    fetch(`/api/empresas/${id}?autor=${encodeURIComponent(currentUserDB.nombre)}`, {
+      method: 'DELETE',
+    }).catch((err) => console.error('Error eliminando empresa en backend:', err));
 
     if (selectedCompany?.id === id) {
       setIsCompanyDrawerOpen(false);
@@ -987,6 +1088,22 @@ export default function App() {
       ),
     }));
 
+    // Persist to server API
+    fetch('/api/seguimientos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prospecto_id: rawLeadId,
+        empresa: activityData.leadName,
+        canal: activityData.type,
+        resultado: activityData.result,
+        observaciones: activityData.notes,
+        proxima_accion: activityData.nextAction,
+        fecha_proximo_seguimiento: activityData.nextFollowUpDate,
+        usuario: currentUserDB.nombre,
+      }),
+    }).catch((err) => console.error('Error guardando seguimiento en backend:', err));
+
     recordAuditAndNotify(
       'Creación',
       'Seguimientos',
@@ -1024,6 +1141,17 @@ export default function App() {
       return { ...prev, tareas: updated };
     });
 
+    // Persist to server API
+    fetch(isNew ? '/api/tareas' : `/api/tareas/${rawId}`, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...newTask,
+        asignado_a: currentUserDB.nombre,
+        autor: currentUserDB.nombre,
+      }),
+    }).catch((err) => console.error('Error guardando tarea en backend:', err));
+
     recordAuditAndNotify(
       isNew ? 'Creación' : 'Actualización',
       'Tareas',
@@ -1034,18 +1162,27 @@ export default function App() {
 
   const handleToggleTaskStatus = (taskIdStr: string) => {
     const rawId = Number(taskIdStr.replace('tsk-', ''));
+    const current = tareas.find((t) => t.id === rawId);
+    const newStatus = current?.estado === 'Completada' ? 'Pendiente' : 'Completada';
+
     setDbState((prev) => ({
       ...prev,
       tareas: prev.tareas.map((t) =>
         t.id === rawId
           ? {
               ...t,
-              estado: t.estado === 'Completada' ? 'Pendiente' : 'Completada',
-              fecha_completada: t.estado === 'Completada' ? null : new Date().toISOString().replace('T', ' ').slice(0, 19),
+              estado: newStatus,
+              fecha_completada: newStatus === 'Completada' ? new Date().toISOString().replace('T', ' ').slice(0, 19) : null,
             }
           : t
       ),
     }));
+
+    fetch(`/api/tareas/${rawId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: newStatus, autor: currentUserDB.nombre }),
+    }).catch((err) => console.error('Error actualizando estado tarea:', err));
   };
 
   const handleDeleteTask = (taskIdStr: string) => {
@@ -1054,6 +1191,10 @@ export default function App() {
       ...prev,
       tareas: prev.tareas.filter((t) => t.id !== rawId),
     }));
+
+    fetch(`/api/tareas/${rawId}?autor=${encodeURIComponent(currentUserDB.nombre)}`, {
+      method: 'DELETE',
+    }).catch((err) => console.error('Error eliminando tarea en backend:', err));
   };
 
   // User Management Handlers (Administradora General Yenifer Reina Sena Suero)
@@ -1068,6 +1209,17 @@ export default function App() {
         usuarios: updated,
       };
     });
+
+    // Persist to server API
+    fetch(isNew ? '/api/usuarios' : `/api/usuarios/${userData.id}`, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...userData,
+        password_hash: (userData as any).password || userData.password_hash || 'Temporal2026*',
+        autor: currentUserDB.nombre,
+      }),
+    }).catch((err) => console.error('Error guardando usuario en backend:', err));
 
     recordAuditAndNotify(
       isNew ? 'Creación' : 'Actualización',
@@ -1089,6 +1241,11 @@ export default function App() {
       ...prev,
       usuarios: prev.usuarios.filter((u) => u.id !== userId),
     }));
+
+    // Call server delete
+    fetch(`/api/usuarios/${userId}?autor=${encodeURIComponent(currentUserDB.nombre)}`, {
+      method: 'DELETE',
+    }).catch((err) => console.error('Error eliminando usuario en backend:', err));
 
     recordAuditAndNotify(
       'Eliminación',
@@ -1351,6 +1508,7 @@ export default function App() {
     exportaciones: 'Módulo Independiente de Exportaciones',
     usuarios: 'Gestión de Usuarios, Subcuentas y Roles (RBAC)',
     auditoria: 'Auditoría del Sistema y Registro de Actividad',
+    alertas: 'Alertas Comerciales & Inactividad',
     configuracion: 'Configuración del Sistema',
     documentacion: 'Documentación Técnica y Arquitectura de Software',
   };

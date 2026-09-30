@@ -17,6 +17,7 @@ import {
   Edit2,
   Trash2,
   Plus,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   EmpresaDB,

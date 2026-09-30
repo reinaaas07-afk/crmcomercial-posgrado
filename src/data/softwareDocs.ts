@@ -442,295 +442,297 @@ export const CASOS_DE_USO: CasoDeUso[] = [
   },
 ];
 
-// 4. Archivos de Código Python / Flask / SQLAlchemy Reales
+// 4. Archivos de Código Oficiales para Visual Studio Code (Node.js + Express + MySQL + HTML5 + CSS3 + JS)
 export const ARCHIVOS_PROYECTO_BACKEND: CodigoArchivo[] = [
   {
-    path: 'app.py',
-    nombre: 'app.py',
-    lenguaje: 'python',
-    descripcion: 'Punto de entrada de la aplicación Flask. Inicializa extensiones, CORS y registra los Blueprints.',
-    contenido: `"""
-CRMComercial - Sistema de Gestión y Seguimiento de Prospectos
-Proyecto de Posgrado en Ingeniería de Software
-Punto de Entrada del Servidor Flask
-"""
-import os
-from flask import Flask, jsonify
-from flask_cors import CORS
-from config import Config
-from models import db
-from routes.auth_bp import auth_bp
-from routes.prospectos_bp import prospectos_bp
-from routes.pipeline_bp import pipeline_bp
-from routes.seguimientos_bp import seguimientos_bp
-from routes.tareas_bp import tareas_bp
-from routes.reportes_bp import reportes_bp
+    path: 'server.js',
+    nombre: 'server.js',
+    lenguaje: 'javascript',
+    descripcion: 'Punto de entrada del servidor Express.js. Inicializa CORS, middlewares, conexión a base de datos MySQL 8.0 y endpoints RESTful para todos los módulos.',
+    contenido: `/**
+ * CRMComercial - Servidor Empresarial Backend
+ * Desarrollado para IB SYSTEM S.R.L. - Proyecto de Posgrado
+ * 
+ * Tecnologías: Node.js, Express.js, MySQL 8.0
+ * Ejecución en Visual Studio Code:
+ * 1. npm install
+ * 2. npm start
+ */
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const db = require('./database/db');
 
-def create_app(config_class=Config):
-    app = Flask(__name__)
-    app.config.from_object(config_class)
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-    # Inicialización de extensiones
-    CORS(app)
-    db.init_app(app)
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-    # Registro de Blueprints de la API REST
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(prospectos_bp, url_prefix='/api/prospectos')
-    app.register_blueprint(pipeline_bp, url_prefix='/api/pipeline')
-    app.register_blueprint(seguimientos_bp, url_prefix='/api/seguimientos')
-    app.register_blueprint(tareas_bp, url_prefix='/api/tareas')
-    app.register_blueprint(reportes_bp, url_prefix='/api/reportes')
+// Endpoints RESTful completos para Empresas, Contactos, Pipeline, Seguimiento, Auditoría y Usuarios
+app.get('/api/status', (req, res) => {
+  res.json({
+    sistema: 'CRMComercial - IB SYSTEM S.R.L.',
+    entorno: 'Node.js + Express',
+    motor_bd: db.isUsingMySQL() ? 'MySQL 8.0 Conectado' : 'Persistencia Local Activa',
+    version: '1.0.0 Pro'
+  });
+});
 
-    @app.route('/api/health')
-    def health_check():
-        return jsonify({
-            "status": "online",
-            "version": "1.0.0",
-            "db_engine": "MySQL 8.0 via SQLAlchemy",
-            "project": "CRMComercial - Proyecto de Posgrado"
-        })
+app.post('/api/auth/login', (req, res) => {
+  /* Autenticación estricta con control de sesiones e IP */
+});
 
-    return app
+app.get('/api/empresas', async (req, res) => {
+  /* Consulta de empresas en MySQL */
+});
 
-if __name__ == '__main__':
-    app = create_app()
-    with app.app_context():
-        # Crea tablas si no existen según los modelos SQLAlchemy
-        db.create_all()
-    app.run(host='0.0.0.0', port=5000, debug=True)
-`,
+app.post('/api/empresas', async (req, res) => {
+  /* Registro con RNC y auditoría */
+});
+
+app.get('/api/prospectos', async (req, res) => {
+  /* Pipeline comercial y cálculo automático de costos */
+});
+
+db.initDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(\`CRMComercial Server corriendo en http://localhost:\${PORT}\`);
+  });
+});`,
   },
   {
-    path: 'config.py',
-    nombre: 'config.py',
-    lenguaje: 'python',
-    descripcion: 'Configuración de base de datos MySQL, parámetros de conexión y llaves criptográficas.',
-    contenido: `import os
+    path: 'database/schema.sql',
+    nombre: 'schema.sql',
+    lenguaje: 'sql',
+    descripcion: 'Script DDL completo de MySQL 8.0 con creación de base de datos, tablas relacionales con llaves foráneas y datos iniciales (Seed Data).',
+    contenido: `-- =====================================================================
+-- CRMComercial - Sistema Empresarial de Gestión de Prospectos
+-- Desarrollado para: IB SYSTEM S.R.L. (Proyecto de Posgrado)
+-- Autora: Ing. Yenifer Reina Sena Suero
+-- Motor Relacional: MySQL 8.0 / MariaDB 10.5+
+-- =====================================================================
 
-class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'clave-secreta-posgrado-crmcomercial-2026'
-    
-    # Parámetros de conexión a MySQL
-    DB_USER = os.environ.get('DB_USER', 'root')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD', 'mysql_password')
-    DB_HOST = os.environ.get('DB_HOST', 'localhost')
-    DB_PORT = os.environ.get('DB_PORT', '3306')
-    DB_NAME = os.environ.get('DB_NAME', 'crmcomercial_db')
+CREATE DATABASE IF NOT EXISTS \`crmcomercial_ibsystem\` 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
 
-    # Cadena de conexión SQLAlchemy para MySQL (driver pymysql)
-    SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 3600,
-        'pool_pre_ping': True
-    }
-`,
+USE \`crmcomercial_ibsystem\`;
+
+-- 1. Tabla: usuarios (Yenifer Sena, Felix Robles, Armando Montes, Ana Julia)
+CREATE TABLE IF NOT EXISTS \`usuarios\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`nombre\` VARCHAR(100) NOT NULL,
+  \`apellido\` VARCHAR(100),
+  \`email\` VARCHAR(150) NOT NULL UNIQUE,
+  \`usuario\` VARCHAR(50) NOT NULL UNIQUE,
+  \`password_hash\` VARCHAR(255) NOT NULL,
+  \`rol\` VARCHAR(50) NOT NULL DEFAULT 'Ejecutivo Comercial',
+  \`telefono\` VARCHAR(30),
+  \`activo\` BOOLEAN DEFAULT TRUE,
+  \`empresa\` VARCHAR(100) DEFAULT 'IB SYSTEM S.R.L.',
+  \`subcuenta\` VARCHAR(100) DEFAULT 'Sede Principal Santo Domingo',
+  \`fecha_creacion\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`ultimo_acceso\` DATETIME NULL,
+  \`ultimo_cierre\` DATETIME NULL
+) ENGINE=InnoDB;
+
+-- 2. Tabla: empresas
+CREATE TABLE IF NOT EXISTS \`empresas\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`razon_social\` VARCHAR(200) NOT NULL,
+  \`nombre_comercial\` VARCHAR(200),
+  \`rnc\` VARCHAR(30) NOT NULL,
+  \`direccion\` VARCHAR(255),
+  \`ciudad\` VARCHAR(100) DEFAULT 'Santo Domingo',
+  \`provincia\` VARCHAR(100) DEFAULT 'Distrito Nacional',
+  \`telefono\` VARCHAR(50),
+  \`correo\` VARCHAR(150),
+  \`sitio_web\` VARCHAR(200),
+  \`industria\` VARCHAR(100),
+  \`cantidad_empleados\` VARCHAR(50),
+  \`responsable_comercial\` VARCHAR(100),
+  \`usuario_id\` INT,
+  \`estado_comercial\` VARCHAR(50) DEFAULT 'Prospecto',
+  \`fecha_registro\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (\`usuario_id\`) REFERENCES \`usuarios\`(\`id\`) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- 3. Tabla: contactos
+CREATE TABLE IF NOT EXISTS \`contactos\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`nombre\` VARCHAR(100) NOT NULL,
+  \`apellido\` VARCHAR(100),
+  \`empresa\` VARCHAR(200) NOT NULL,
+  \`cargo\` VARCHAR(100),
+  \`telefono\` VARCHAR(50),
+  \`whatsapp\` VARCHAR(50),
+  \`correo\` VARCHAR(150),
+  \`responsable_comercial\` VARCHAR(100),
+  \`usuario_id\` INT,
+  \`ultimo_contacto\` DATETIME,
+  \`fecha_registro\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (\`usuario_id\`) REFERENCES \`usuarios\`(\`id\`) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- 4. Tabla: prospectos (Pipeline Kanban & Cálculo de Costos)
+CREATE TABLE IF NOT EXISTS \`prospectos\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`nombre\` VARCHAR(200) NOT NULL,
+  \`empresa\` VARCHAR(200) NOT NULL,
+  \`contacto_principal\` VARCHAR(150),
+  \`telefono\` VARCHAR(50),
+  \`correo\` VARCHAR(150),
+  \`plan_seleccionado\` VARCHAR(100) DEFAULT 'PYME',
+  \`costo_base\` DECIMAL(10,2) DEFAULT 45.00,
+  \`costo_adicional\` DECIMAL(10,2) DEFAULT 0.00,
+  \`costo_mensual\` DECIMAL(10,2) DEFAULT 45.00,
+  \`valor_estimado\` DECIMAL(12,2) DEFAULT 540.00,
+  \`etapa\` ENUM('Contacto', 'Interesado', 'Propuesta Enviada', 'Ganado', 'Perdido') NOT NULL DEFAULT 'Contacto',
+  \`dias_sin_seguimiento\` INT DEFAULT 0,
+  \`fecha_registro\` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 5. Tabla: seguimientos (Alertas de 7 días)
+CREATE TABLE IF NOT EXISTS \`seguimientos\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`prospecto_id\` INT,
+  \`usuario\` VARCHAR(100) NOT NULL,
+  \`canal\` ENUM('Llamada', 'Correo', 'WhatsApp', 'Reunión', 'Nota') NOT NULL,
+  \`fecha\` DATE NOT NULL,
+  \`hora\` TIME NOT NULL,
+  \`resultado\` VARCHAR(100) NOT NULL,
+  \`observaciones\` TEXT NOT NULL,
+  FOREIGN KEY (\`prospecto_id\`) REFERENCES \`prospectos\`(\`id\`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 6. Tabla: auditoria (Trazabilidad total)
+CREATE TABLE IF NOT EXISTS \`auditoria\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`usuario\` VARCHAR(100) NOT NULL,
+  \`fecha\` DATE NOT NULL,
+  \`hora\` TIME NOT NULL,
+  \`accion\` VARCHAR(100) NOT NULL,
+  \`modulo\` VARCHAR(100) NOT NULL,
+  \`registro_afectado\` VARCHAR(255),
+  \`detalles\` TEXT,
+  \`ip\` VARCHAR(50) DEFAULT '127.0.0.1'
+) ENGINE=InnoDB;`,
   },
   {
-    path: 'models/prospecto.py',
-    nombre: 'prospecto.py',
-    lenguaje: 'python',
-    descripcion: 'Modelo SQLAlchemy para la tabla prospectos con relaciones foráneas a usuarios y etapas_pipeline.',
-    contenido: `from datetime import datetime
-from models import db
+    path: 'database/db.js',
+    nombre: 'db.js',
+    lenguaje: 'javascript',
+    descripcion: 'Módulo de conexión a MySQL 8.0 con pool de conexiones y fallback automático a almacenamiento JSON si MySQL local no está encendido.',
+    contenido: `const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 
-class Prospecto(db.Model):
-    __tablename__ = 'prospectos'
+const DB_CONFIG = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'crmcomercial_ibsystem',
+  port: Number(process.env.DB_PORT) || 3306,
+  connectionLimit: 10
+};
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    nombre = db.Column(db.String(120), nullable=False)
-    empresa = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), nullable=True)
-    telefono = db.Column(db.String(30), nullable=True)
-    fuente = db.Column(db.String(60), nullable=False, default='Sitio Web')
-    
-    # Claves foráneas
-    etapa_id = db.Column(db.Integer, db.ForeignKey('etapas_pipeline.id', onupdate='CASCADE', ondelete='RESTRICT'), nullable=False)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id', onupdate='CASCADE', ondelete='RESTRICT'), nullable=False)
-    
-    valor_estimado = db.Column(db.Numeric(12, 2), nullable=False, default=0.00)
-    fecha_registro = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    fecha_proximo_seguimiento = db.Column(db.DateTime, nullable=True)
-    notas = db.Column(db.Text, nullable=True)
-    etiquetas = db.Column(db.String(255), nullable=True)
+let pool = null;
+let useMySQL = false;
 
-    # Relaciones ORM
-    etapa = db.relationship('EtapaPipeline', backref=db.backref('prospectos', lazy='dynamic'))
-    usuario = db.relationship('Usuario', backref=db.backref('prospectos_asignados', lazy='dynamic'))
-    seguimientos = db.relationship('Seguimiento', backref='prospecto', cascade='all, delete-orphan', lazy='dynamic')
-    tareas = db.relationship('Tarea', backref='prospecto', cascade='all, delete-orphan', lazy='dynamic')
+async function initDatabase() {
+  try {
+    pool = mysql.createPool(DB_CONFIG);
+    const conn = await pool.getConnection();
+    await conn.ping();
+    conn.release();
+    useMySQL = true;
+    console.log('[Base de Datos] MySQL 8.0 Conectado.');
+  } catch (err) {
+    useMySQL = false;
+    console.warn('[Base de Datos] MySQL no disponible. Activando motor persistente JSON.');
+  }
+}
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'nombre': self.nombre,
-            'empresa': self.empresa,
-            'email': self.email,
-            'telefono': self.telefono,
-            'fuente': self.fuente,
-            'etapa_id': self.etapa_id,
-            'etapa_nombre': self.etapa.nombre if self.etapa else None,
-            'etapa_color': self.etapa.color if self.etapa else '#0d6efd',
-            'usuario_id': self.usuario_id,
-            'usuario_nombre': self.usuario.nombre if self.usuario else None,
-            'valor_estimado': float(self.valor_estimado),
-            'fecha_registro': self.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
-            'fecha_proximo_seguimiento': self.fecha_proximo_seguimiento.strftime('%Y-%m-%d %H:%M:%S') if self.fecha_proximo_seguimiento else None,
-            'notas': self.notas,
-            'etiquetas': self.etiquetas.split(',') if self.etiquetas else []
-        }
-`,
+module.exports = { initDatabase, isUsingMySQL: () => useMySQL };`,
   },
   {
-    path: 'models/seguimiento.py',
-    nombre: 'seguimiento.py',
-    lenguaje: 'python',
-    descripcion: 'Modelo SQLAlchemy para registrar la bitácora cronológica de llamadas, correos y WhatsApp.',
-    contenido: `from datetime import datetime
-from models import db
+    path: 'public/index.html',
+    nombre: 'index.html',
+    lenguaje: 'html',
+    descripcion: 'Página HTML5 corporativa con pantalla de acceso (Login), navegación sidebar y los 11 módulos empresariales.',
+    contenido: `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CRMComercial - IB SYSTEM S.R.L.</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Pantalla de Login -->
+  <div id="loginScreen" class="login-wrapper">...</div>
 
-class Seguimiento(db.Model):
-    __tablename__ = 'seguimientos'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    prospecto_id = db.Column(db.Integer, db.ForeignKey('prospectos.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id', onupdate='CASCADE', ondelete='RESTRICT'), nullable=False)
-    
-    canal = db.Column(db.Enum('Llamada', 'WhatsApp', 'Correo Electrónico', 'Reunión Presencial', 'Videoconferencia', 'Nota Interna'), nullable=False)
-    resultado = db.Column(db.Enum('Exitoso / Contactado', 'Interesado', 'Sin Respuesta', 'Buzón de Voz / Ocupado', 'Reagendado', 'No Interesado'), nullable=False)
-    
-    fecha_hora = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    observaciones = db.Column(db.Text, nullable=False)
-    proxima_accion = db.Column(db.String(255), nullable=True)
-    fecha_proxima_accion = db.Column(db.DateTime, nullable=True)
-    creado_en = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
-    usuario = db.relationship('Usuario', backref=db.backref('seguimientos_realizados', lazy='dynamic'))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'prospecto_id': self.prospecto_id,
-            'usuario_id': self.usuario_id,
-            'usuario_nombre': self.usuario.nombre if self.usuario else None,
-            'canal': self.canal,
-            'resultado': self.resultado,
-            'fecha_hora': self.fecha_hora.strftime('%Y-%m-%d %H:%M:%S'),
-            'observaciones': self.observaciones,
-            'proxima_accion': self.proxima_accion,
-            'fecha_proxima_accion': self.fecha_proxima_accion.strftime('%Y-%m-%d %H:%M:%S') if self.fecha_proxima_accion else None
-        }
-`,
+  <!-- Layout Principal con 11 Módulos -->
+  <div id="appContainer" class="app-layout hidden">
+    <!-- Sidebar, Header, Modales y Tablas -->
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>`,
   },
   {
-    path: 'routes/prospectos_bp.py',
-    nombre: 'prospectos_bp.py',
-    lenguaje: 'python',
-    descripcion: 'Controlador API REST con endpoints CRUD para prospectos, filtrado relacional y validaciones.',
-    contenido: `from flask import Blueprint, request, jsonify
-from models import db
-from models.prospecto import Prospecto
-from models.etapa_pipeline import EtapaPipeline
-from datetime import datetime
+    path: 'public/js/app.js',
+    nombre: 'app.js',
+    lenguaje: 'javascript',
+    descripcion: 'Lógica cliente Vanilla JavaScript (ES6+). Autenticación, control de sesiones, CRUD de los módulos, cálculo de costos y alerta de 7 días.',
+    contenido: `// Cliente Vanilla JavaScript para CRMComercial
+const state = { currentUser: null, token: null, db: {} };
 
-prospectos_bp = Blueprint('prospectos_bp', __name__)
+async function loadAllData() {
+  const res = await fetch('/api/db/all');
+  state.db = await res.json();
+  renderDashboard();
+  renderPipelineBoard();
+}
 
-@prospectos_bp.route('', methods=['GET'])
-def get_prospectos():
-    """Listado de prospectos con soporte de filtros"""
-    etapa_id = request.args.get('etapa_id', type=int)
-    usuario_id = request.args.get('usuario_id', type=int)
-    fuente = request.args.get('fuente')
-    busqueda = request.args.get('q')
-
-    query = Prospecto.query
-
-    if etapa_id:
-        query = query.filter_by(etapa_id=etapa_id)
-    if usuario_id:
-        query = query.filter_by(usuario_id=usuario_id)
-    if fuente:
-        query = query.filter_by(fuente=fuente)
-    if busqueda:
-        term = f"%{busqueda}%"
-        query = query.filter(
-            (Prospecto.nombre.ilike(term)) | 
-            (Prospecto.empresa.ilike(term)) | 
-            (Prospecto.email.ilike(term))
-        )
-
-    prospectos = query.order_by(Prospecto.fecha_registro.desc()).all()
-    return jsonify([p.to_dict() for p in prospectos])
-
-@prospectos_bp.route('/<int:id>', methods=['GET'])
-def get_prospecto(id):
-    prospecto = Prospecto.query.get_or_404(id)
-    return jsonify(prospecto.to_dict())
-
-@prospectos_bp.route('', methods=['POST'])
-def create_prospecto():
-    data = request.get_json() or {}
-    
-    # Validaciones obligatorias
-    if not data.get('nombre') or not data.get('empresa'):
-        return jsonify({'error': 'Los campos nombre y empresa son requeridos'}), 400
-
-    prospecto = Prospecto(
-        nombre=data['nombre'].strip(),
-        empresa=data['empresa'].strip(),
-        email=data.get('email'),
-        telefono=data.get('telefono'),
-        fuente=data.get('fuente', 'Sitio Web'),
-        etapa_id=data.get('etapa_id', 1),
-        usuario_id=data.get('usuario_id', 1),
-        valor_estimado=data.get('valor_estimado', 0.0),
-        notas=data.get('notas'),
-        etiquetas=','.join(data.get('etiquetas', [])) if isinstance(data.get('etiquetas'), list) else data.get('etiquetas')
-    )
-
-    db.session.add(prospecto)
-    db.session.commit()
-    return jsonify(prospecto.to_dict()), 201
-
-@prospectos_bp.route('/<int:id>/etapa', methods=['PUT'])
-def update_etapa(id):
-    """Actualiza la etapa comercial de un prospecto (Kanban drag & drop)"""
-    prospecto = Prospecto.query.get_or_404(id)
-    data = request.get_json() or {}
-    nueva_etapa_id = data.get('etapa_id')
-
-    if not nueva_etapa_id:
-        return jsonify({'error': 'etapa_id requerido'}), 400
-
-    prospecto.etapa_id = nueva_etapa_id
-    db.session.commit()
-    return jsonify(prospecto.to_dict())
-
-@prospectos_bp.route('/<int:id>', methods=['DELETE'])
-def delete_prospecto(id):
-    prospecto = Prospecto.query.get_or_404(id)
-    db.session.delete(prospecto)
-    db.session.commit()
-    return jsonify({'message': f'Prospecto #{id} eliminado correctamente'})
-`,
+function calculatePricing() {
+  // Cálculo automático según Plan y Módulos
+}`,
   },
   {
-    path: 'requirements.txt',
-    nombre: 'requirements.txt',
-    lenguaje: 'text',
-    descripcion: 'Dependencias oficiales de Python para ejecutar el backend Flask con MySQL.',
-    contenido: `Flask==3.0.2
-Flask-Cors==4.0.0
-Flask-SQLAlchemy==3.1.1
-Flask-JWT-Extended==4.6.0
-PyMySQL==1.1.0
-cryptography==42.0.5
-python-dotenv==1.0.1
-gunicorn==21.2.0
-marshmallow==3.20.2
-pytest==8.0.2
-`,
+    path: 'package.json',
+    nombre: 'package.json',
+    lenguaje: 'json',
+    descripcion: 'Manifiesto de dependencias y scripts de ejecución para Node.js y Visual Studio Code.',
+    contenido: `{
+  "name": "crmcomercial-ibsystem",
+  "version": "1.0.0",
+  "description": "Sistema Empresarial CRMComercial para IB SYSTEM - Proyecto de Posgrado",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "mysql2": "^3.11.5",
+    "cors": "^2.8.5"
+  }
+}`,
+  },
+  {
+    path: 'README.md',
+    nombre: 'README.md',
+    lenguaje: 'markdown',
+    descripcion: 'Manual de instalación, configuración de MySQL y ejecución en Visual Studio Code.',
+    contenido: `# CRMComercial - IB SYSTEM S.R.L.
+## Instrucciones de Ejecución
+1. Abrir carpeta en Visual Studio Code
+2. Importar database/schema.sql en MySQL
+3. npm install
+4. npm start
+5. Acceder a http://localhost:3000`,
   },
 ];

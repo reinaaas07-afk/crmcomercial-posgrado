@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRMComercial - IB SYSTEM S.R.L. | Plataforma Empresarial</title>
+  <meta name="description" content="Sistema empresarial CRMComercial desarrollado para IB SYSTEM. Arquitectura Node.js, Express, MySQL, HTML5 y JavaScript.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- SheetJS para lectura y procesamiento nativo de archivos Excel (.xlsx, .xls) y CSV -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- PANTALLA DE ACCESO (LOGIN) -->
+  <div id="loginScreen" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-box">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"/>
+            <path d="M7 7h10"/>
+            <path d="M7 12h10"/>
+            <path d="M7 17h6"/>
+          </svg>
+        </div>
+        <h1>CRMComercial</h1>
+        <p class="subtitle">IB SYSTEM S.R.L. &bull; Proyecto de Posgrado</p>
+      </div>
+
+      <div id="loginAlert" class="alert error hidden"></div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="loginUser">Usuario o Correo Institucional</label>
+          <input type="text" id="loginUser" placeholder="ej. yenifer.sena" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="loginPass">Contraseña de Acceso</label>
+          <input type="password" id="loginPass" placeholder="••••••••••••" required autocomplete="current-password">
+        </div>
+
+        <div class="login-actions">
+          <button type="button" class="btn-link" id="btnForgotPass">¿Olvidaste tu contraseña?</button>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="btnLogin">
+          <span>Ingresar a la Plataforma</span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <div class="credential-hint">
+          <strong>Usuarios preconfigurados (Demo):</strong>
+          <ul>
+            <li><strong>Admin:</strong> yenifer.sena &bull; <code>Admin123*</code></li>
+            <li><strong>Ejecutivo:</strong> felix.robles &bull; <code>Felix2026*</code></li>
+            <li><strong>Supervisor:</strong> armando.montes &bull; <code>Armando2026*</code></li>
+            <li><strong>Analista:</strong> ana.alcantara &bull; <code>Ana2026*</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APLICACIÓN PRINCIPAL (CRM) -->
+  <div id="appContainer" class="app-layout hidden">
+    <!-- BARRA LATERAL (SIDEBAR) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="logo-box small">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 12h10"/><path d="M7 17h6"/></svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">CRMComercial</span>
+          <span class="brand-tag">IB SYSTEM</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">PRINCIPAL</div>
+        <button class="nav-item active" data-view="dashboard">
+          <span class="icon">&#9638;</span> Dashboard
+        </button>
+        <button class="nav-item" data-view="pipeline">
+          <span class="icon">&#9639;</span> Pipeline Comercial
+        </button>
+        <button class="nav-item" data-view="seguimiento">
+          <span class="icon">&#9742;</span> Seguimiento
+          <span id="badgeOverdue" class="badge-alert hidden">!</span>
+        </button>
+        <button class="nav-item" data-view="tareas">
+          <span class="icon">&#10003;</span> Tareas
+        </button>
+        <button class="nav-item" data-view="metas">
+          <span class="icon">&#9873;</span> Metas Comerciales
+        </button>
+
+        <div class="nav-section-title">DIRECTORIO</div>
+        <button class="nav-item" data-view="empresas">
+          <span class="icon">&#9881;</span> Empresas
+        </button>
+        <button class="nav-item" data-view="contactos">
+          <span class="icon">&#128101;</span> Contactos
+        </button>
+
+        <div class="nav-section-title">DATOS & REPORTES</div>
+        <button class="nav-item" data-view="importacion">
+          <span class="icon">&#8681;</span> Importar Excel
+        </button>
+        <button class="nav-item" data-view="exportacion">
+          <span class="icon">&#8679;</span> Exportar Información
+        </button>
+        <button class="nav-item" data-view="auditoria">
+          <span class="icon">&#128221;</span> Auditoría Completa
+        </button>
+        <button class="nav-item" data-view="usuarios" id="navUsuarios">
+          <span class="icon">&#128100;</span> Gestión de Usuarios
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="db-indicator">
+          <span class="dot-online"></span>
+          <span id="dbStatusText">MySQL 8.0 Activo</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA DE CONTENIDO -->
+    <div class="app-main">
+      <!-- HEADER SUPERIOR -->
+      <header class="app-header">
+        <div class="header-search">
+          <input type="text" id="globalSearch" placeholder="Buscar empresas, prospectos, RNC o contactos (Ctrl+K)...">
+        </div>
+
+        <div class="header-actions">
+          <button id="btnNotif" class="btn-icon" title="Notificaciones">
+            <span class="bell-icon">&#128276;</span>
+            <span id="notifBadge" class="notif-badge hidden">0</span>
+          </button>
+
+          <div class="user-profile">
+            <div class="avatar" id="userAvatar">YS</div>
+            <div class="user-meta">
+              <span class="user-name" id="currentUserName">Yenifer Reina Sena</span>
+              <span class="user-role" id="currentUserRole">Administrador General</span>
+            </div>
+          </div>
+
+          <button id="btnLogout" class="btn btn-outline-danger btn-sm" title="Cerrar sesión">
+            <span>Salir</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- VISTAS DEL SISTEMA -->
+      <main class="content-body">
+        
+        <!-- 1. DASHBOARD -->
+        <section id="viewDashboard" class="module-view active">
+          <div class="view-header">
+            <div>
+              <h2>Dashboard General de Ventas</h2>
+              <p class="text-muted">Métricas en tiempo real y rendimiento del pipeline para IB SYSTEM.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('modalProspecto')">+ Nueva Oportunidad</button>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">TOTAL PROSPECTOS</div>
+              <div class="kpi-value" id="kpiTotalProspectos">0</div>
+              <div class="kpi-sub">En cartera activa</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">PROSPECTOS GANADOS</div>
+              <div class="kpi-value text-success" id="kpiGanados">0</div>
+              <div class="kpi-sub">Cierres exitosos</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">TASA DE CONVERSIÓN</div>
+              <div class="kpi-value text-primary" id="kpiTasaConversion">0%</div>
+              <div class="kpi-sub">Efectividad global</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">VALOR ESTIMADO PIPELINE</div>
+              <div class="kpi-value text-warning" id="kpiValorPipeline">US$ 0</div>
+              <div class="kpi-sub">Proyección anual (12m)</div>
+            </div>
+          </div>
+
+          <div class="dashboard-columns">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Distribución por Etapas</h3>
+              </div>
+              <div class="panel-body" id="pipelineBreakdown">
+                <!-- Se llena dinámicamente -->
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Actividad Comercial Reciente</h3>
+              </div>
+              <div class="panel-body">
+                <div id="recentActivityList" class="activity-feed"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. EMPRESAS -->
+        <section id="viewEmpresas" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Módulo de Empresas</h2>
+              <p class="text-muted">Registro corporativo, RNC y relación directa con prospectos y contactos.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('modalEmpresa')">+ Registrar Empresa</button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-controls">
+              <input type="text" id="filterEmpresas" placeholder="Filtrar por Razón Social, RNC o Industria..." class="search-input">
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Razón Social / Nombre Comercial</th>
+                    <th>RNC</th>
+                    <th>Ubicación</th>
+                    <th>Teléfono / Correo</th>
+                    <th>Industria</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tableEmpresasBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. CONTACTOS -->
+        <section id="viewContactos" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Directorio de Contactos</h2>
+              <p class="text-muted">Decisores comerciales, cargos, WhatsApp directo y trazabilidad.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('modalContacto')">+ Nuevo Contacto</button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-controls">
+              <input type="text" id="filterContactos" placeholder="Filtrar por nombre, empresa o cargo..." class="search-input">
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Nombre Completo</th>
+                    <th>Empresa</th>
+                    <th>Cargo</th>
+                    <th>Contacto Directo</th>
+                    <th>Responsable</th>
+                    <th>Último Contacto</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tableContactosBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. PIPELINE COMERCIAL (KANBAN) -->
+        <section id="viewPipeline" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Pipeline Comercial (Kanban)</h2>
+              <p class="text-muted">Flujo de ventas oficial: Contacto, Interesado, Propuesta Enviada, Ganado, Perdido.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('modalProspecto')">+ Crear Oportunidad</button>
+          </div>
+
+          <div class="kanban-board">
+            <!-- 1. Contacto -->
+            <div class="kanban-col" data-stage="Contacto">
+              <div class="kanban-col-header">
+                <span class="stage-title">1. Contacto</span>
+                <span class="stage-count" id="count-Contacto">0</span>
+              </div>
+              <div class="kanban-cards" id="cards-Contacto"></div>
+            </div>
+
+            <!-- 2. Interesado -->
+            <div class="kanban-col" data-stage="Interesado">
+              <div class="kanban-col-header">
+                <span class="stage-title">2. Interesado</span>
+                <span class="stage-count" id="count-Interesado">0</span>
+              </div>
+              <div class="kanban-cards" id="cards-Interesado"></div>
+            </div>
+
+            <!-- 3. Propuesta Enviada -->
+            <div class="kanban-col" data-stage="Propuesta Enviada">
+              <div class="kanban-col-header">
+                <span class="stage-title">3. Propuesta Enviada</span>
+                <span class="stage-count" id="count-Propuesta">0</span>
+              </div>
+              <div class="kanban-cards" id="cards-Propuesta"></div>
+            </div>
+
+            <!-- 4. Ganado -->
+            <div class="kanban-col col-success" data-stage="Ganado">
+              <div class="kanban-col-header">
+                <span class="stage-title">4. Ganado</span>
+                <span class="stage-count" id="count-Ganado">0</span>
+              </div>
+              <div class="kanban-cards" id="cards-Ganado"></div>
+            </div>
+
+            <!-- 5. Perdido -->
+            <div class="kanban-col col-danger" data-stage="Perdido">
+              <div class="kanban-col-header">
+                <span class="stage-title">5. Perdido</span>
+                <span class="stage-count" id="count-Perdido">0</span>
+              </div>
+              <div class="kanban-cards" id="cards-Perdido"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. SEGUIMIENTO & ALERTAS -->
+        <section id="viewSeguimiento" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Módulo de Seguimiento & Alertas</h2>
+              <p class="text-muted">Registro de llamadas, reuniones y detección automática de inactividad de 7 días.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('modalSeguimiento')">+ Registrar Interacción</button>
+          </div>
+
+          <!-- Banner Alertas de Inactividad -->
+          <div id="alertInactivityBanner" class="alert-box-warning hidden">
+            <div class="alert-icon">&#9888;</div>
+            <div>
+              <strong>Prospectos que requieren atención inmediata (+7 días sin actividad comercial):</strong>
+              <div id="overdueList" class="overdue-chips"></div>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Fecha & Hora</th>
+                    <th>Empresa / Prospecto</th>
+                    <th>Canal</th>
+                    <th>Resultado</th>
+                    <th>Ejecutivo</th>
+                    <th>Próxima Acción & Fecha</th>
+                    <th>Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tableSeguimientosBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. TAREAS -->
+        <section id="viewTareas" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Tareas & Compromisos Comerciales</h2>
+              <p class="text-muted">Gestión de actividades operativas y prioridades de prospección.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('modalTarea')">+ Nueva Tarea</button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Estado</th>
+                    <th>Título</th>
+                    <th>Asignado a</th>
+                    <th>Fecha Límite</th>
+                    <th>Prioridad</th>
+                    <th>Relacionado con</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tableTareasBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. METAS COMERCIALES -->
+        <section id="viewMetas" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Metas Comerciales</h2>
+              <p class="text-muted">Objetivos mensuales, trimestrales y anuales por ejecutivo comercial.</p>
+            </div>
+          </div>
+
+          <div class="metas-grid" id="metasGrid">
+            <!-- Dinámico -->
+          </div>
+        </section>
+
+        <!-- 8. AUDITORÍA COMPLETA -->
+        <section id="viewAuditoria" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Auditoría General del Sistema</h2>
+              <p class="text-muted">Registro inmutable de accesos, creaciones, modificaciones, eliminaciones e IP.</p>
+            </div>
+            <button class="btn btn-outline" onclick="exportAuditExcel()">Exportar Auditoría (CSV/Excel)</button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-controls">
+              <input type="text" id="filterAuditoria" placeholder="Filtrar auditoría por usuario, acción o módulo..." class="search-input">
+            </div>
+            <div class="table-responsive">
+              <table class="data-table font-mono-table">
+                <thead>
+                  <tr>
+                    <th>Fecha & Hora</th>
+                    <th>Usuario</th>
+                    <th>Acción</th>
+                    <th>Módulo</th>
+                    <th>Registro Afectado</th>
+                    <th>IP</th>
+                    <th>Detalles</th>
+                  </tr>
+                </thead>
+                <tbody id="tableAuditoriaBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 9. IMPORTACIÓN EXCEL & CSV (CRÍTICO IB SYSTEM) -->
+        <section id="viewImportacion" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Importación Inteligente IB SYSTEM (Excel & CSV)</h2>
+              <p class="text-muted">Reconocimiento automático de columnas corporativas, mapeo flexible y deduplicación en tiempo real.</p>
+            </div>
+          </div>
+
+          <!-- TRACKER DE PASOS -->
+          <div class="step-tracker">
+            <div class="step-item active" id="step1Indicator">
+              <div class="step-number">1</div>
+              <div><strong>Seleccionar Archivo</strong><br><span class="text-muted">Excel (.xlsx/.xls) o CSV</span></div>
+            </div>
+            <div class="step-item" id="step2Indicator">
+              <div class="step-number">2</div>
+              <div><strong>Mapeo de Columnas</strong><br><span class="text-muted">12 Campos IB SYSTEM</span></div>
+            </div>
+            <div class="step-item" id="step3Indicator">
+              <div class="step-number">3</div>
+              <div><strong>Validación & Deduplicación</strong><br><span class="text-muted">Empresas, Contactos, Prospectos</span></div>
+            </div>
+            <div class="step-item" id="step4Indicator">
+              <div class="step-number">4</div>
+              <div><strong>Confirmación</strong><br><span class="text-muted">Almacenamiento permanente</span></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <!-- PASO 1: SELECCIÓN DE ARCHIVOS -->
+            <div class="import-dropzone" id="dropzone">
+              <div class="drop-icon">&#128194;</div>
+              <h3>Selecciona o arrastra tu archivo Excel o CSV</h3>
+              <p class="text-muted">Compatible con hojas de cálculo (.xlsx, .xls) generadas por IB SYSTEM y archivos CSV delimitados por coma o punto y coma.</p>
+              <div style="margin-top: 15px;">
+                <input type="file" id="fileImportInput" accept=".xlsx, .xls, .csv" class="hidden">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('fileImportInput').click()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Abrir Explorador de Archivos (Windows / Mac)
+                </button>
+              </div>
+              <div id="fileLoadedBadge" class="hidden" style="margin-top: 12px; font-weight:600; color:#60a5fa;"></div>
+            </div>
+
+            <!-- PASO 2: MAPEO DE COLUMNAS IB SYSTEM -->
+            <div id="mappingSection" class="mapping-container hidden">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+                <div>
+                  <h3 style="font-size:15px; color:#93c5fd;">Mapeo de Columnas (Estructura IB SYSTEM)</h3>
+                  <p class="text-muted" style="font-size:12px;">Asocia las columnas de tu archivo externo con los 12 atributos comerciales requeridos.</p>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="autoDetectColumnMapping()">Auto-detectar Columnas</button>
+              </div>
+
+              <div class="mapping-grid">
+                <div class="mapping-field">
+                  <label>Empresa * <span class="text-muted">&rarr; Empresa</span></label>
+                  <select id="mapColEmpresa" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Contacto <span class="text-muted">&rarr; Contacto Principal</span></label>
+                  <select id="mapColContacto" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Teléfono <span class="text-muted">&rarr; Teléfono</span></label>
+                  <select id="mapColTelefono" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Correo <span class="text-muted">&rarr; Correo</span></label>
+                  <select id="mapColCorreo" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Naturaleza <span class="text-muted">&rarr; Naturaleza del Negocio</span></label>
+                  <select id="mapColNaturaleza" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>¿Certificado FE? <span class="text-muted">&rarr; Certificado FE</span></label>
+                  <select id="mapColCertificadoFE" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>POS Digital <span class="text-muted">&rarr; POS Digital</span></label>
+                  <select id="mapColPOSDigital" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Otro Sistema <span class="text-muted">&rarr; Sistema Actual</span></label>
+                  <select id="mapColOtroSistema" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Módulos Interés <span class="text-muted">&rarr; Productos de Interés</span></label>
+                  <select id="mapColModulos" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Fecha Contacto <span class="text-muted">&rarr; Fecha Primer Contacto</span></label>
+                  <select id="mapColFechaContacto" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Presentación FE <span class="text-muted">&rarr; Presentación FE</span></label>
+                  <select id="mapColPresentacionFE" onchange="recalculateMappedPreview()"></select>
+                </div>
+                <div class="mapping-field">
+                  <label>Estado <span class="text-muted">&rarr; Estado Comercial</span></label>
+                  <select id="mapColEstado" onchange="recalculateMappedPreview()"></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- PASO 3 & 4: VISTA PREVIA Y VALIDACIÓN -->
+            <div id="importPreviewArea" class="hidden" style="margin-top: 20px;">
+              <div class="validation-summary">
+                <div class="validation-card">
+                  <h4 id="importTotalRead" style="color:#60a5fa;">0</h4>
+                  <span>Registros Leídos</span>
+                </div>
+                <div class="validation-card">
+                  <h4 id="importTotalNew" style="color:#34d399;">0</h4>
+                  <span>Nuevos a Crear</span>
+                </div>
+                <div class="validation-card">
+                  <h4 id="importTotalUpdate" style="color:#fbbf24;">0</h4>
+                  <span>Existentes a Actualizar</span>
+                </div>
+                <div class="validation-card">
+                  <h4 id="importAutoEntities" style="color:#a78bfa;">3x</h4>
+                  <span>Empresas, Contactos, Prospectos</span>
+                </div>
+              </div>
+
+              <h3>Vista Previa con Validación (<span id="importRowCount">0</span> filas analizadas)</h3>
+              <div class="table-responsive max-h-300">
+                <table class="data-table" id="importPreviewTable">
+                  <thead>
+                    <tr>
+                      <th>Acción Inteligente</th>
+                      <th>Empresa</th>
+                      <th>Contacto Principal</th>
+                      <th>Teléfono</th>
+                      <th>Correo</th>
+                      <th>Naturaleza</th>
+                      <th>Certificado FE</th>
+                      <th>POS Digital</th>
+                      <th>Módulos</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="importPreviewBody"></tbody>
+                </table>
+              </div>
+
+              <div class="actions-bar" style="margin-top: 16px; display: flex; gap: 10px;">
+                <button type="button" class="btn btn-success" id="btnConfirmImport" onclick="handleConfirmImport()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Confirmar e Importar al CRM
+                </button>
+                <button type="button" class="btn btn-outline" onclick="cancelImport()">Cancelar / Limpiar</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 10. EXPORTACIÓN -->
+        <section id="viewExportacion" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Exportación de Información</h2>
+              <p class="text-muted">Descarga de reportes corporativos en Excel para respaldo y análisis gerencial.</p>
+            </div>
+          </div>
+
+          <div class="export-grid">
+            <div class="export-card">
+              <h3>Exportar Empresas</h3>
+              <p>Directorio completo con RNC, ubicación y responsable comercial.</p>
+              <button class="btn btn-primary btn-block" onclick="exportData('empresas')">Descargar Excel Empresas</button>
+            </div>
+
+            <div class="export-card">
+              <h3>Exportar Contactos</h3>
+              <p>Base de datos de contactos comerciales, teléfonos y cargos.</p>
+              <button class="btn btn-primary btn-block" onclick="exportData('contactos')">Descargar Excel Contactos</button>
+            </div>
+
+            <div class="export-card">
+              <h3>Exportar Pipeline</h3>
+              <p>Oportunidades con etapas, costos mensuales y valor estimado.</p>
+              <button class="btn btn-primary btn-block" onclick="exportData('prospectos')">Descargar Excel Pipeline</button>
+            </div>
+
+            <div class="export-card">
+              <h3>Exportar Auditoría</h3>
+              <p>Historial completo de accesos, modificaciones e IP del sistema.</p>
+              <button class="btn btn-primary btn-block" onclick="exportData('auditoria')">Descargar Excel Auditoría</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 11. GESTIÓN DE USUARIOS (SOLO ADMIN) -->
+        <section id="viewUsuarios" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Gestión de Usuarios Corporativos</h2>
+              <p class="text-muted">Control de credenciales, roles asignados y estados de cuenta.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('modalUsuario')">+ Crear Usuario</button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Nombre Completo</th>
+                    <th>Usuario</th>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Último Acceso</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tableUsuariosBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: RECUPERAR CONTRASEÑA -->
+  <div id="modalRecuperar" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Recuperar Contraseña</h3>
+        <button class="btn-close" onclick="closeModal('modalRecuperar')">&times;</button>
+      </div>
+      <form id="formRecuperar">
+        <div class="modal-body">
+          <p class="text-muted">Ingresa tu correo institucional registrado para recuperar tus credenciales de acceso.</p>
+          <div class="form-group">
+            <label>Correo Institucional</label>
+            <input type="email" id="recuperarEmail" placeholder="ej. yenifer.sena@ibsystem.com.do" required>
+          </div>
+          <div id="recuperarResult" class="alert info hidden"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalRecuperar')">Cerrar</button>
+          <button type="submit" class="btn btn-primary">Recuperar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVA EMPRESA -->
+  <div id="modalEmpresa" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalEmpresaTitle">Registrar Empresa</h3>
+        <button class="btn-close" onclick="closeModal('modalEmpresa')">&times;</button>
+      </div>
+      <form id="formEmpresa">
+        <input type="hidden" id="empresaId">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Razón Social *</label>
+              <input type="text" id="empresaRazon" required placeholder="ej. Ferretería Central S.R.L.">
+            </div>
+            <div class="form-group">
+              <label>Nombre Comercial</label>
+              <input type="text" id="empresaComercial" placeholder="ej. Ferretería Central">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>RNC *</label>
+              <input type="text" id="empresaRnc" required placeholder="ej. 1-30-88452-1">
+            </div>
+            <div class="form-group">
+              <label>Industria</label>
+              <input type="text" id="empresaIndustria" placeholder="ej. Construcción / Retail">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ciudad</label>
+              <input type="text" id="empresaCiudad" value="Santo Domingo">
+            </div>
+            <div class="form-group">
+              <label>Provincia</label>
+              <input type="text" id="empresaProvincia" value="Distrito Nacional">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Teléfono Principal</label>
+              <input type="text" id="empresaTelefono" placeholder="+1 809-000-0000">
+            </div>
+            <div class="form-group">
+              <label>Correo Principal</label>
+              <input type="email" id="empresaCorreo" placeholder="contacto@empresa.com.do">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sitio Web</label>
+              <input type="url" id="empresaWeb" placeholder="https://...">
+            </div>
+            <div class="form-group">
+              <label>Cantidad de Empleados</label>
+              <select id="empresaEmpleados">
+                <option value="1-10">1 a 10</option>
+                <option value="11-25">11 a 25</option>
+                <option value="25-50" selected>25 a 50</option>
+                <option value="50-100">50 a 100</option>
+                <option value="100+">Más de 100</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Estado Comercial</label>
+              <select id="empresaEstado">
+                <option value="Prospecto">Prospecto</option>
+                <option value="En Negociación">En Negociación</option>
+                <option value="Cliente Activo">Cliente Activo</option>
+                <option value="Cliente Inactivo">Cliente Inactivo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Responsable Comercial</label>
+              <select id="empresaResponsable"></select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalEmpresa')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Empresa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVO CONTACTO -->
+  <div id="modalContacto" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalContactoTitle">Registrar Contacto</h3>
+        <button class="btn-close" onclick="closeModal('modalContacto')">&times;</button>
+      </div>
+      <form id="formContacto">
+        <input type="hidden" id="contactoId">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre *</label>
+              <input type="text" id="contactoNombre" required placeholder="ej. Carlos">
+            </div>
+            <div class="form-group">
+              <label>Apellido</label>
+              <input type="text" id="contactoApellido" placeholder="ej. Méndez">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Empresa *</label>
+              <input type="text" id="contactoEmpresa" required placeholder="Nombre de la empresa">
+            </div>
+            <div class="form-group">
+              <label>Cargo</label>
+              <input type="text" id="contactoCargo" placeholder="ej. Gerente de Compras">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="text" id="contactoTelefono" placeholder="+1 809-000-0000">
+            </div>
+            <div class="form-group">
+              <label>WhatsApp</label>
+              <input type="text" id="contactoWhatsapp" placeholder="+1 809-000-0000">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Correo Electrónico</label>
+              <input type="email" id="contactoCorreo" placeholder="cmendez@empresa.com.do">
+            </div>
+            <div class="form-group">
+              <label>Responsable</label>
+              <select id="contactoResponsable"></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notas Iniciales</label>
+            <textarea id="contactoNotas" rows="2" placeholder="Observaciones o contexto del contacto..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalContacto')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Contacto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVA OPORTUNIDAD / PROSPECTO -->
+  <div id="modalProspecto" class="modal-backdrop hidden">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 id="modalProspectoTitle">Nueva Oportunidad Comercial</h3>
+        <button class="btn-close" onclick="closeModal('modalProspecto')">&times;</button>
+      </div>
+      <form id="formProspecto">
+        <input type="hidden" id="prospectoId">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Empresa / Prospecto *</label>
+              <input type="text" id="prosEmpresa" required placeholder="ej. Supermercado Quisqueya">
+            </div>
+            <div class="form-group">
+              <label>Contacto Principal</label>
+              <input type="text" id="prosContacto" placeholder="Nombre de decisor">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="text" id="prosTelefono" placeholder="+1 809-000-0000">
+            </div>
+            <div class="form-group">
+              <label>Correo</label>
+              <input type="email" id="prosCorreo" placeholder="ventas@empresa.do">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Etapa del Pipeline</label>
+              <select id="prosEtapa">
+                <option value="Contacto">1. Contacto</option>
+                <option value="Interesado">2. Interesado</option>
+                <option value="Propuesta Enviada">3. Propuesta Enviada</option>
+                <option value="Ganado">4. Ganado</option>
+                <option value="Perdido">5. Perdido</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Responsable Comercial</label>
+              <select id="prosResponsable"></select>
+            </div>
+          </div>
+
+          <!-- CÁLCULO DE COSTOS Y PLANES COMERCIALES IB SYSTEM -->
+          <div class="pricing-calc-box">
+            <h4>Catálogo de Planes & Cálculo Automático Comercial</h4>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label>Plan Comercial IB SYSTEM *</label>
+                <select id="prosPlan" onchange="updatePlanDetails(); calculatePricing();">
+                  <option value="Básico">Plan Básico (US$ 25.00/mes)</option>
+                  <option value="PYME" selected>Plan PYME (US$ 45.00/mes)</option>
+                  <option value="Empresarial">Plan Empresarial (US$ 80.00/mes)</option>
+                  <option value="Corporativo">Plan Corporativo (US$ 120.00/mes)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Cantidad de Usuarios *</label>
+                <input type="number" id="prosUsuarios" min="1" max="100" value="3" oninput="calculatePricing()" style="font-weight:700; color:#60a5fa;">
+              </div>
+            </div>
+
+            <!-- FICHA TÉCNICA DEL PLAN SELECCIONADO -->
+            <div class="plan-detail-card" id="planDetailBox">
+              <div class="plan-feature-row"><span>eCF Mensuales:</span><strong id="planDetailEcf">Hasta 500 e-CF/mes</strong></div>
+              <div class="plan-feature-row"><span>Límite de Ventas:</span><strong id="planDetailLimite">Hasta US$ 50,000 / mes</strong></div>
+              <div class="plan-feature-row"><span>Costo Base Mensual:</span><strong id="planDetailCosto" style="color:#34d399;">US$ 45.00 / mes</strong></div>
+              <div class="plan-feature-row"><span>Ideal Para:</span><em id="planDetailIdeal">Pequeñas y medianas empresas con emisión recurrente</em></div>
+            </div>
+
+            <div class="form-group" style="margin-top: 10px;">
+              <label>Módulos Adicionales (Seleccionar - Costo Mensual por Usuario)</label>
+              <div class="modules-check-grid">
+                <label><input type="checkbox" value="Inventario" data-cost="8" class="module-check" onchange="calculatePricing()"> Inventario (US$ 8/usuario)</label>
+                <label><input type="checkbox" value="Compras" data-cost="6" class="module-check" onchange="calculatePricing()"> Compras (US$ 6/usuario)</label>
+                <label><input type="checkbox" value="Ventas" data-cost="8" class="module-check" onchange="calculatePricing()"> Ventas (US$ 8/usuario)</label>
+                <label><input type="checkbox" value="Caja" data-cost="5" class="module-check" onchange="calculatePricing()"> Caja (US$ 5/usuario)</label>
+                <label><input type="checkbox" value="Contabilidad" data-cost="12" class="module-check" onchange="calculatePricing()"> Contabilidad (US$ 12/usuario)</label>
+                <label><input type="checkbox" value="Cuentas por Cobrar" data-cost="7" class="module-check" onchange="calculatePricing()"> Ctas. por Cobrar (US$ 7/usuario)</label>
+                <label><input type="checkbox" value="Cuentas por Pagar" data-cost="7" class="module-check" onchange="calculatePricing()"> Ctas. por Pagar (US$ 7/usuario)</label>
+                <label><input type="checkbox" value="Reportes Gerenciales" data-cost="10" class="module-check" onchange="calculatePricing()"> Reportes Gerenciales (US$ 10/usuario)</label>
+              </div>
+            </div>
+
+            <div class="pricing-summary-bar">
+              <div>Costo Base: <strong id="calcBase">US$ 45.00</strong></div>
+              <div>Costo Módulos (x usuarios): <strong id="calcModulos">US$ 0.00</strong></div>
+              <div>Costo por Usuario: <strong id="calcPorUsuario">US$ 0.00</strong></div>
+              <div>Total Mensual: <strong id="calcMensual" class="text-success">US$ 45.00</strong></div>
+              <div>Total Anual: <strong id="calcAnual" class="text-primary">US$ 540.00</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalProspecto')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Oportunidad</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR SEGUIMIENTO -->
+  <div id="modalSeguimiento" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Registrar Seguimiento</h3>
+        <button class="btn-close" onclick="closeModal('modalSeguimiento')">&times;</button>
+      </div>
+      <form id="formSeguimiento">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Oportunidad / Prospecto *</label>
+            <select id="segProspectoId" required></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Canal *</label>
+              <select id="segCanal">
+                <option value="Llamada">Llamada</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Correo">Correo</option>
+                <option value="Reunión">Reunión</option>
+                <option value="Nota">Nota Interna</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Resultado *</label>
+              <select id="segResultado">
+                <option value="Exitoso">Exitoso</option>
+                <option value="Interesado">Interesado</option>
+                <option value="Reagendado">Reagendado</option>
+                <option value="Sin respuesta">Sin respuesta</option>
+                <option value="Rechazado">Rechazado</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Observaciones de la Interacción *</label>
+            <textarea id="segObservaciones" rows="3" required placeholder="Detalles de lo conversado..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Próxima Acción</label>
+              <input type="text" id="segProximaAccion" placeholder="ej. Enviar propuesta económica">
+            </div>
+            <div class="form-group">
+              <label>Fecha Próximo Seguimiento</label>
+              <input type="datetime-local" id="segFechaProximo">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalSeguimiento')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Registrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: HISTORIAL Y COMENTARIOS -->
+  <div id="modalHistorial" class="modal-backdrop hidden">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 id="modalHistorialTitle">Historial & Comentarios</h3>
+        <button class="btn-close" onclick="closeModal('modalHistorial')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs-nav">
+          <button class="tab-btn active" onclick="switchHistorialTab('tabComentarios')">Comentarios & Adjuntos</button>
+          <button class="tab-btn" onclick="switchHistorialTab('tabCambios')">Trazabilidad de Cambios</button>
+        </div>
+
+        <!-- Tab Comentarios -->
+        <div id="tabComentarios" class="tab-content active">
+          <div class="comment-box">
+            <textarea id="newCommentText" rows="2" placeholder="Escribe un comentario o nota comercial..."></textarea>
+            <div class="comment-file-row">
+              <input type="file" id="commentFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*">
+              <button class="btn btn-primary btn-sm" onclick="addComment()">Publicar Comentario</button>
+            </div>
+          </div>
+          <div id="commentsList" class="comments-list"></div>
+        </div>
+
+        <!-- Tab Trazabilidad -->
+        <div id="tabCambios" class="tab-content">
+          <div id="changesAuditList" class="audit-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVA TAREA -->
+  <div id="modalTarea" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalTareaTitle">Nueva Tarea</h3>
+        <button class="btn-close" onclick="closeModal('modalTarea')">&times;</button>
+      </div>
+      <form id="formTarea">
+        <input type="hidden" id="tareaId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Título de la Tarea *</label>
+            <input type="text" id="tareaTitulo" required placeholder="ej. Llamar para verificar recepción de cotización">
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea id="tareaDescripcion" rows="2" placeholder="Detalles de la tarea..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Asignado a *</label>
+              <select id="tareaAsignado"></select>
+            </div>
+            <div class="form-group">
+              <label>Fecha Límite *</label>
+              <input type="date" id="tareaFechaLimite" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Prioridad</label>
+              <select id="tareaPrioridad">
+                <option value="Alta">Alta</option>
+                <option value="Media" selected>Media</option>
+                <option value="Baja">Baja</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Estado</label>
+              <select id="tareaEstado">
+                <option value="Pendiente">Pendiente</option>
+                <option value="En Progreso">En Progreso</option>
+                <option value="Completada">Completada</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalTarea')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Tarea</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVO USUARIO -->
+  <div id="modalUsuario" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalUsuarioTitle">Crear Usuario Corporativo</h3>
+        <button class="btn-close" onclick="closeModal('modalUsuario')">&times;</button>
+      </div>
+      <form id="formUsuario">
+        <input type="hidden" id="usuarioId">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre Completo *</label>
+              <input type="text" id="userNombre" required placeholder="ej. Juan Pérez">
+            </div>
+            <div class="form-group">
+              <label>Usuario *</label>
+              <input type="text" id="userUsuario" required placeholder="ej. juan.perez">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Correo Institucional *</label>
+              <input type="email" id="userEmail" required placeholder="juan@ibsystem.com.do">
+            </div>
+            <div class="form-group">
+              <label>Rol Asignado *</label>
+              <select id="userRol">
+                <option value="Ejecutivo Comercial">Ejecutivo Comercial</option>
+                <option value="Supervisor Comercial">Supervisor Comercial</option>
+                <option value="Analista Comercial">Analista Comercial</option>
+                <option value="Administrador General">Administrador General</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Contraseña *</label>
+            <input type="password" id="userPassword" required placeholder="••••••••••••">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalUsuario')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear Usuario</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

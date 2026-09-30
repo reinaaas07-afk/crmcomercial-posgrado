@@ -143,6 +143,7 @@ export type ActiveSection =
   | 'seguimientos'
   | 'calendario'
   | 'tareas'
+  | 'alertas'
   | 'objetivos'
   | 'papelera'
   | 'actividad'
@@ -151,5 +152,6 @@ export type ActiveSection =
   | 'importaciones'
   | 'exportaciones'
   | 'usuarios'
+  | 'auditoria'
   | 'configuracion'
   | 'documentacion';

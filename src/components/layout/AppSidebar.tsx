@@ -25,6 +25,7 @@ import {
   Target,
   Activity,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { SeccionApp, UsuarioDB, RolUsuario } from '../../types/schema';
 
@@ -81,6 +82,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { id: 'seguimientos', label: 'Seguimientos', icon: PhoneCall },
     { id: 'tareas', label: 'Tareas', icon: CheckSquare, badge: tareasPendientesCount },
     { id: 'calendario', label: 'Calendario', icon: Calendar },
+    { id: 'alertas', label: 'Alertas Comerciales', icon: AlertTriangle },
     { id: 'objetivos', label: 'Objetivos & Metas', icon: Target },
     { id: 'actividad', label: 'Actividad en Vivo', icon: Activity },
     { id: 'reportes', label: 'Reportes', icon: BarChart3 },
@@ -114,7 +116,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 CRMComercial
               </span>
               <span className="text-[10px] text-blue-400 font-mono block leading-tight truncate">
-                Gestión de Prospectos · ITHOT
+                Gestión de Prospectos · IB SYSTEM
               </span>
             </div>
           </div>
@@ -218,33 +220,26 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             )}
           </div>
 
-          {/* Quick Colleague Switcher Dropdown & Logout */}
-          {(!collapsed || isMobile) && allUsers.length > 1 && onSelectUser && (
-            <div className="mt-2 pt-2 border-t border-slate-800/60 space-y-2">
-              <div>
-                <label className="text-[10px] text-slate-400 block mb-1">Cambiar Usuario Activo:</label>
-                <select
-                  value={currentUser.id}
-                  onChange={(e) => onSelectUser(Number(e.target.value))}
-                  className="w-full text-[11px] bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
-                >
-                  {allUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre} ({u.rol})
-                    </option>
-                  ))}
-                </select>
+          {/* Secure User Status & Logout */}
+          {(!collapsed || isMobile) && (
+            <div className="mt-2 pt-2 border-t border-slate-800/60 space-y-1.5">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-slate-400 font-mono">Estado:</span>
+                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>En línea</span>
+                </span>
               </div>
 
               {onLogout && (
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="w-full py-1 px-2 rounded-lg bg-slate-800/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700/60 hover:border-rose-500/40 text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                  title="Cerrar sesión actual"
+                  className="w-full py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  title="Cerrar sesión para cambiar de usuario o salir del sistema"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Cerrar Sesión</span>
+                  <span>Cerrar Sesión / Salir</span>
                 </button>
               )}
             </div>

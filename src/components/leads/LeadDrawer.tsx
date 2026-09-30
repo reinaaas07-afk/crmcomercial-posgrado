@@ -761,7 +761,8 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({
                     rol: 'Administrador General',
                     activo: true,
                     fecha_creacion: '2026-09-01',
-                    empresa: 'ITHOT',
+                    empresa: 'IB SYSTEM S.R.L.',
+                    telefono: currentUser.phone || '+1 809-567-8900',
                   }
                 }
                 comentarios={comentarios}

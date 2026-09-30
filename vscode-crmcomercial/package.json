@@ -1,0 +1,26 @@
+{
+  "name": "crmcomercial-ibsystem",
+  "version": "1.0.0",
+  "description": "Sistema Empresarial CRMComercial para IB SYSTEM - Proyecto de Posgrado",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "crm",
+    "ib-system",
+    "express",
+    "mysql",
+    "nodejs",
+    "html5",
+    "javascript"
+  ],
+  "author": "Yenifer Reina Sena Suero - IB SYSTEM",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2",
+    "mysql2": "^3.11.5",
+    "cors": "^2.8.5"
+  }
+}
