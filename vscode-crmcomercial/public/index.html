@@ -73,40 +73,57 @@
         <button class="nav-item active" data-view="dashboard">
           <span class="icon">&#9638;</span> Dashboard
         </button>
+        <button class="nav-item" data-view="contactos">
+          <span class="icon">&#128101;</span> Contactos
+        </button>
+        <button class="nav-item" data-view="empresas">
+          <span class="icon">&#9881;</span> Empresas
+        </button>
         <button class="nav-item" data-view="pipeline">
           <span class="icon">&#9639;</span> Pipeline Comercial
         </button>
         <button class="nav-item" data-view="seguimiento">
-          <span class="icon">&#9742;</span> Seguimiento
+          <span class="icon">&#9742;</span> Seguimientos
           <span id="badgeOverdue" class="badge-alert hidden">!</span>
+        </button>
+
+        <div class="nav-section-title">GESTIÓN COMERCIAL</div>
+        <button class="nav-item" data-view="oportunidades">
+          <span class="icon">&#128200;</span> Oportunidades
         </button>
         <button class="nav-item" data-view="tareas">
           <span class="icon">&#10003;</span> Tareas
+        </button>
+        <button class="nav-item" data-view="calendario">
+          <span class="icon">&#128197;</span> Calendario
         </button>
         <button class="nav-item" data-view="metas">
           <span class="icon">&#9873;</span> Metas Comerciales
         </button>
 
-        <div class="nav-section-title">DIRECTORIO</div>
-        <button class="nav-item" data-view="empresas">
-          <span class="icon">&#9881;</span> Empresas
-        </button>
-        <button class="nav-item" data-view="contactos">
-          <span class="icon">&#128101;</span> Contactos
-        </button>
-
-        <div class="nav-section-title">DATOS & REPORTES</div>
+        <div class="nav-section-title">DATOS Y REPORTES</div>
         <button class="nav-item" data-view="importacion">
           <span class="icon">&#8681;</span> Importar Excel
         </button>
         <button class="nav-item" data-view="exportacion">
           <span class="icon">&#8679;</span> Exportar Información
         </button>
+        <button class="nav-item" data-view="reportes">
+          <span class="icon">&#128202;</span> Reportes
+        </button>
         <button class="nav-item" data-view="auditoria">
           <span class="icon">&#128221;</span> Auditoría Completa
         </button>
+
+        <div class="nav-section-title">ADMINISTRACIÓN</div>
         <button class="nav-item" data-view="usuarios" id="navUsuarios">
           <span class="icon">&#128100;</span> Gestión de Usuarios
+        </button>
+        <button class="nav-item" data-view="configuracion">
+          <span class="icon">&#9881;</span> Configuración
+        </button>
+        <button class="nav-item" data-view="documentacion">
+          <span class="icon">&#128218;</span> Documentación Técnica
         </button>
       </nav>
 
@@ -157,6 +174,23 @@
               <p class="text-muted">Métricas en tiempo real y rendimiento del pipeline para IB SYSTEM.</p>
             </div>
             <button class="btn btn-primary" onclick="openModal('modalProspecto')">+ Nueva Oportunidad</button>
+          </div>
+
+          <!-- ACCESOS RÁPIDOS EN DASHBOARD (Prioridad #13) -->
+          <div class="quick-actions-bar">
+            <span class="quick-actions-title">&#9889; Accesos Rápidos:</span>
+            <button type="button" class="quick-btn primary" onclick="openModal('modalEmpresa')">
+              <span>+ Nueva Empresa</span>
+            </button>
+            <button type="button" class="quick-btn primary" onclick="openModal('modalContacto')">
+              <span>+ Nuevo Contacto</span>
+            </button>
+            <button type="button" class="quick-btn primary" onclick="openModal('modalProspecto')">
+              <span>+ Nueva Oportunidad</span>
+            </button>
+            <button type="button" class="quick-btn" onclick="switchView('importacion')">
+              <span>&#8681; Importar Excel</span>
+            </button>
           </div>
 
           <div class="kpi-grid">
@@ -686,38 +720,184 @@
           </div>
         </section>
 
-        <!-- 10. EXPORTACIÓN -->
+        <!-- 10. EXPORTACIÓN (Prioridad #8: Excel, CSV y PDF) -->
         <section id="viewExportacion" class="module-view">
           <div class="view-header">
             <div>
-              <h2>Exportación de Información</h2>
-              <p class="text-muted">Descarga de reportes corporativos en Excel para respaldo y análisis gerencial.</p>
+              <h2>Exportación de Información Oficial</h2>
+              <p class="text-muted">Descarga de registros comerciales en formatos Excel (.xlsx), CSV (UTF-8 con BOM) e Informes PDF institucionales.</p>
             </div>
           </div>
 
           <div class="export-grid">
             <div class="export-card">
               <h3>Exportar Empresas</h3>
-              <p>Directorio completo con RNC, ubicación y responsable comercial.</p>
-              <button class="btn btn-primary btn-block" onclick="exportData('empresas')">Descargar Excel Empresas</button>
+              <p>Directorio corporativo completo con RNC, ubicación, teléfonos y responsable.</p>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn btn-primary btn-block" onclick="exportData('empresas', 'xlsx')">&#128190; Descargar Excel (.xlsx)</button>
+                <button class="btn btn-outline btn-block" onclick="exportData('empresas', 'csv')">&#128196; Descargar CSV (.csv)</button>
+                <button class="btn btn-outline btn-block" onclick="exportPDF('empresas')">&#128438; Informe Imprimible (PDF)</button>
+              </div>
             </div>
 
             <div class="export-card">
               <h3>Exportar Contactos</h3>
-              <p>Base de datos de contactos comerciales, teléfonos y cargos.</p>
-              <button class="btn btn-primary btn-block" onclick="exportData('contactos')">Descargar Excel Contactos</button>
+              <p>Base de datos de decisores comerciales con datos de contacto y empresa asociada.</p>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn btn-primary btn-block" onclick="exportData('contactos', 'xlsx')">&#128190; Descargar Excel (.xlsx)</button>
+                <button class="btn btn-outline btn-block" onclick="exportData('contactos', 'csv')">&#128196; Descargar CSV (.csv)</button>
+                <button class="btn btn-outline btn-block" onclick="exportPDF('contactos')">&#128438; Informe Imprimible (PDF)</button>
+              </div>
             </div>
 
             <div class="export-card">
-              <h3>Exportar Pipeline</h3>
-              <p>Oportunidades con etapas, costos mensuales y valor estimado.</p>
-              <button class="btn btn-primary btn-block" onclick="exportData('prospectos')">Descargar Excel Pipeline</button>
+              <h3>Exportar Oportunidades</h3>
+              <p>Pipeline completo con etapas, cotizaciones mensuales y proyecciones anuales.</p>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn btn-primary btn-block" onclick="exportData('prospectos', 'xlsx')">&#128190; Descargar Excel (.xlsx)</button>
+                <button class="btn btn-outline btn-block" onclick="exportData('prospectos', 'csv')">&#128196; Descargar CSV (.csv)</button>
+                <button class="btn btn-outline btn-block" onclick="exportPDF('prospectos')">&#128438; Informe Imprimible (PDF)</button>
+              </div>
             </div>
 
             <div class="export-card">
               <h3>Exportar Auditoría</h3>
-              <p>Historial completo de accesos, modificaciones e IP del sistema.</p>
-              <button class="btn btn-primary btn-block" onclick="exportData('auditoria')">Descargar Excel Auditoría</button>
+              <p>Bitácora inmutable de accesos, inicios de sesión, cambios e IP registrada.</p>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn btn-primary btn-block" onclick="exportData('auditoria', 'xlsx')">&#128190; Descargar Excel (.xlsx)</button>
+                <button class="btn btn-outline btn-block" onclick="exportData('auditoria', 'csv')">&#128196; Descargar CSV (.csv)</button>
+                <button class="btn btn-outline btn-block" onclick="exportPDF('auditoria')">&#128438; Informe Imprimible (PDF)</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- NUEVA VISTA: OPORTUNIDADES (TABLA DETALLADA) -->
+        <section id="viewOportunidades" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Directorio de Oportunidades Comerciales</h2>
+              <p class="text-muted">Vista tabular consolidada con planes contratados, usuarios configurados y valor comercial.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('modalProspecto')">+ Crear Oportunidad</button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-controls">
+              <input type="text" id="filterOportunidades" placeholder="Filtrar por empresa, contacto o plan..." class="search-input" oninput="renderOportunidadesTable()">
+              <select id="filtroOportunidadEtapa" class="filter-select" onchange="renderOportunidadesTable()">
+                <option value="">Todas las etapas</option>
+                <option value="Contacto">Contacto</option>
+                <option value="Interesado">Interesado</option>
+                <option value="Propuesta Enviada">Propuesta Enviada</option>
+                <option value="Ganado">Ganado</option>
+                <option value="Perdido">Perdido</option>
+              </select>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Empresa</th>
+                    <th>Contacto Principal</th>
+                    <th>Plan Comercial</th>
+                    <th>Módulos & Usuarios</th>
+                    <th>Total Mensual</th>
+                    <th>Valor Anual</th>
+                    <th>Etapa</th>
+                    <th>Responsable</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tableOportunidadesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- NUEVA VISTA: CALENDARIO DE SEGUIMIENTOS Y COMPROMISOS -->
+        <section id="viewCalendario" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Calendario Comercial & Compromisos</h2>
+              <p class="text-muted">Planificación interactiva de llamadas, reuniones y fechas límite de tareas.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline" onclick="openModal('modalSeguimiento')">+ Agendar Interacción</button>
+              <button class="btn btn-primary" onclick="openModal('modalTarea')">+ Agendar Tarea</button>
+            </div>
+          </div>
+
+          <div class="panel" style="padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3 id="calendarMonthTitle" style="font-size:16px; color:#93c5fd;">Octubre 2026</h3>
+              <div style="display:flex; gap:6px;">
+                <span class="badge" style="background:#10b981;">● Seguimientos</span>
+                <span class="badge" style="background:#f59e0b;">● Tareas Comerciales</span>
+              </div>
+            </div>
+
+            <div class="calendar-container">
+              <div class="calendar-day-header">Lun</div>
+              <div class="calendar-day-header">Mar</div>
+              <div class="calendar-day-header">Mié</div>
+              <div class="calendar-day-header">Jue</div>
+              <div class="calendar-day-header">Vie</div>
+              <div class="calendar-day-header">Sáb</div>
+              <div class="calendar-day-header">Dom</div>
+            </div>
+            <div class="calendar-container" id="calendarDaysGrid">
+              <!-- Días generados dinámicamente -->
+            </div>
+          </div>
+        </section>
+
+        <!-- NUEVA VISTA: REPORTES Y ANALÍTICA -->
+        <section id="viewReportes" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Reportes Gerenciales & Analítica Comercial</h2>
+              <p class="text-muted">Resumen ejecutivo del pipeline, efectividad de conversión y facturación recurrente.</p>
+            </div>
+            <button class="btn btn-outline" onclick="exportPDF('reportes')">&#128438; Imprimir Informe Ejecutivo</button>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">TOTAL FACTURACIÓN MENSUAL</div>
+              <div class="kpi-value text-success" id="repTotalMensual">US$ 0.00</div>
+              <div class="kpi-sub">Cartera activa mensual</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">PROYECCIÓN ANUAL GANADA</div>
+              <div class="kpi-value text-primary" id="repTotalAnual">US$ 0.00</div>
+              <div class="kpi-sub">Cierres confirmados</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">PROSPECTOS EN NEGOCIACIÓN</div>
+              <div class="kpi-value text-warning" id="repEnNegociacion">0</div>
+              <div class="kpi-sub">Etapa propuesta enviada</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">TICKET PROMEDIO MENSUAL</div>
+              <div class="kpi-value" id="repTicketPromedio">US$ 0.00</div>
+              <div class="kpi-sub">Por cliente activo</div>
+            </div>
+          </div>
+
+          <div class="dashboard-columns" style="margin-top:20px;">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Ventas y Metas por Ejecutivo</h3>
+              </div>
+              <div class="panel-body" id="repEjecutivosList"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Módulos IB SYSTEM más Demandados</h3>
+              </div>
+              <div class="panel-body" id="repModulosList"></div>
             </div>
           </div>
         </section>
@@ -727,7 +907,7 @@
           <div class="view-header">
             <div>
               <h2>Gestión de Usuarios Corporativos</h2>
-              <p class="text-muted">Control de credenciales, roles asignados y estados de cuenta.</p>
+              <p class="text-muted">Control de credenciales individuales, roles asignados, auditoría de actividad y restablecimiento de claves.</p>
             </div>
             <button class="btn btn-primary" onclick="openModal('modalUsuario')">+ Crear Usuario</button>
           </div>
@@ -739,15 +919,290 @@
                   <tr>
                     <th>Nombre Completo</th>
                     <th>Usuario</th>
-                    <th>Correo</th>
-                    <th>Rol</th>
+                    <th>Correo Institucional</th>
+                    <th>Rol Oficial</th>
                     <th>Estado</th>
                     <th>Último Acceso</th>
-                    <th>Acciones</th>
+                    <th>Acciones Administrativas</th>
                   </tr>
                 </thead>
                 <tbody id="tableUsuariosBody"></tbody>
               </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- NUEVA VISTA: CONFIGURACIÓN CORPORATIVA Y MULTI-DISPOSITIVO (Prioridad #2) -->
+        <section id="viewConfiguracion" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Configuración del Sistema & Red Multi-dispositivo</h2>
+              <p class="text-muted">Parámetros corporativos de IB SYSTEM S.R.L., estado de sincronización y conectividad LAN.</p>
+            </div>
+            <button class="btn btn-outline" onclick="loadSystemInfo()">&#8635; Actualizar Estado</button>
+          </div>
+
+          <div class="dashboard-columns">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Identidad Institucional</h3>
+              </div>
+              <div class="panel-body">
+                <div class="detail-item"><span class="detail-label">Razón Social:</span><strong>IB SYSTEM S.R.L.</strong></div>
+                <div class="detail-item" style="margin-top:8px;"><span class="detail-label">RNC:</span><code>1-30-88452-1</code></div>
+                <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Plataforma CRM:</span><strong>CRMComercial v2.5</strong></div>
+                <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Moneda Comercial Oficial:</span><strong style="color:#34d399;">Dólares Americanos (US$)</strong></div>
+                <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Sede Central:</span><span>Santo Domingo, Distrito Nacional, Rep. Dominicana</span></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Conectividad Multi-dispositivo (Red Local LAN)</h3>
+              </div>
+              <div class="panel-body">
+                <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Para ingresar al CRM desde teléfonos celulares, tabletas u otras computadoras en la misma red Wi-Fi:</p>
+                <div style="background:#070a12; border:1px solid var(--border-color); padding:12px; border-radius:6px; font-family:var(--font-mono); font-size:12px; margin-bottom:10px;">
+                  <div>💻 Localhost: <strong id="cfgLocalhost">http://localhost:3000</strong></div>
+                  <div style="margin-top:6px;">📱 Red Wi-Fi / IP Local: <strong id="cfgNetwork" style="color:#60a5fa;">Cargando...</strong></div>
+                </div>
+                <div class="detail-item"><span class="detail-label">Escucha en:</span><code>0.0.0.0 (Acceso multi-dispositivo habilitado)</code></div>
+                <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Motor Activo:</span><strong id="cfgEngine" style="color:#34d399;">Cargando...</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:20px;">
+            <div class="panel-header">
+              <h3>Mecanismo de Migración a MySQL 8.0 (Prioridad #10)</h3>
+            </div>
+            <div class="panel-body">
+              <p class="text-muted" style="font-size:12px; margin-bottom:14px;">Toda la información acumulada en el CRM puede sincronizarse y migrarse directamente hacia MySQL sin pérdida de ningún registro:</p>
+              <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <a href="/api/migrate/download-sql" class="btn btn-primary" target="_blank">&#8679; Descargar Script SQL Completo (.sql)</a>
+                <button class="btn btn-outline" onclick="triggerMigrateMySQL()">&#8644; Ejecutar Migración Hacia MySQL</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- NUEVA VISTA: DOCUMENTACIÓN TÉCNICA PARA SUSTENTACIÓN (Prioridad #11) -->
+        <section id="viewDocumentacion" class="module-view">
+          <div class="view-header">
+            <div>
+              <h2>Documentación Técnica & Sustentación de Posgrado</h2>
+              <p class="text-muted">Memoria técnica, arquitectura, Modelo Entidad-Relación (ERD) y flujos operacionales de CRMComercial.</p>
+            </div>
+            <button class="btn btn-outline" onclick="exportPDF('documentacion')">&#128438; Exportar Memoria en PDF</button>
+          </div>
+
+          <!-- 1. ARQUITECTURA -->
+          <div class="doc-section-card">
+            <h3>&#127963; 1. Arquitectura del Sistema</h3>
+            <p style="font-size:13px; line-height:1.6; color:#cbd5e1;">
+              <strong>CRMComercial</strong> es una plataforma cliente-servidor de alto desempeño diseñada específicamente para <strong>IB SYSTEM S.R.L.</strong> Su arquitectura modular comprende:
+            </p>
+            <ul style="font-size:12px; line-height:1.7; color:#94a3b8; margin-top:8px; padding-left:20px;">
+              <li><strong>Frontend:</strong> HTML5 semántico, CSS3 con variables nativas de diseño responsivo y JavaScript Vanilla sin dependencias pesadas, optimizado para ejecución instantánea en cualquier navegador.</li>
+              <li><strong>Backend:</strong> Node.js con Express.js proporcionando una API RESTful stateless, middleware de auditoría y parsing para JSON y Excel/CSV (SheetJS).</li>
+              <li><strong>Capa de Persistencia:</strong> Motor dual con almacenamiento persistente en disco y conexión relacional con <strong>MySQL 8.0</strong> gestionado a través de pool de conexiones (`mysql2/promise`).</li>
+              <li><strong>Seguridad & RBAC:</strong> Modelo de Control de Acceso Basado en Roles (Administrador General, Supervisor Comercial, Ejecutivo Comercial, Analista Comercial) con auditoría inmutable de IP, fecha y hora.</li>
+            </ul>
+          </div>
+
+          <!-- 2. MODELO ENTIDAD RELACIÓN (ERD) -->
+          <div class="doc-section-card">
+            <h3>&#128391; 2. Modelo Entidad-Relación (ERD)</h3>
+            <p style="font-size:13px; color:#cbd5e1;">Diagrama relacional oficial con claves primarias (PK), foráneas (FK) y cardinalidad entre módulos:</p>
+            <div class="doc-erd-diagram">
+              <svg width="100%" height="320" viewBox="0 0 900 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Tabla Usuarios -->
+                <rect x="20" y="20" width="160" height="150" rx="6" fill="#0f172a" stroke="#3b82f6" stroke-width="2"/>
+                <rect x="20" y="20" width="160" height="30" rx="6" fill="#1e3a8a"/>
+                <text x="30" y="40" fill="#fff" font-weight="bold" font-size="12">usuarios (PK)</text>
+                <text x="30" y="70" fill="#93c5fd" font-size="10">PK: id (INT)</text>
+                <text x="30" y="90" fill="#cbd5e1" font-size="10">nombre, usuario</text>
+                <text x="30" y="110" fill="#cbd5e1" font-size="10">password_hash</text>
+                <text x="30" y="130" fill="#cbd5e1" font-size="10">rol, activo</text>
+                <text x="30" y="150" fill="#cbd5e1" font-size="10">ultimo_acceso</text>
+
+                <!-- Tabla Empresas -->
+                <rect x="240" y="20" width="170" height="170" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+                <rect x="240" y="20" width="170" height="30" rx="6" fill="#065f46"/>
+                <text x="250" y="40" fill="#fff" font-weight="bold" font-size="12">empresas (PK)</text>
+                <text x="250" y="70" fill="#6ee7b7" font-size="10">PK: id (INT)</text>
+                <text x="250" y="90" fill="#cbd5e1" font-size="10">razon_social, rnc</text>
+                <text x="250" y="110" fill="#cbd5e1" font-size="10">telefono, correo</text>
+                <text x="250" y="130" fill="#cbd5e1" font-size="10">ciudad, provincia</text>
+                <text x="250" y="150" fill="#cbd5e1" font-size="10">estado_comercial</text>
+                <text x="250" y="170" fill="#93c5fd" font-size="10">FK: usuario_id</text>
+
+                <!-- Tabla Contactos -->
+                <rect x="470" y="20" width="180" height="190" rx="6" fill="#0f172a" stroke="#8b5cf6" stroke-width="2"/>
+                <rect x="470" y="20" width="180" height="30" rx="6" fill="#5b21b6"/>
+                <text x="480" y="40" fill="#fff" font-weight="bold" font-size="12">contactos (PK, FK)</text>
+                <text x="480" y="70" fill="#c4b5fd" font-size="10">PK: id (INT)</text>
+                <text x="480" y="90" fill="#6ee7b7" font-size="10">FK: empresa_id &rarr; empresas</text>
+                <text x="480" y="110" fill="#cbd5e1" font-size="10">nombre, apellido</text>
+                <text x="480" y="130" fill="#cbd5e1" font-size="10">telefono, whatsapp, correo</text>
+                <text x="480" y="150" fill="#cbd5e1" font-size="10">producto_interes, modulo</text>
+                <text x="480" y="170" fill="#cbd5e1" font-size="10">estado_comercial, etiquetas</text>
+                <text x="480" y="190" fill="#93c5fd" font-size="10">FK: usuario_id</text>
+
+                <!-- Tabla Prospectos (Oportunidades) -->
+                <rect x="710" y="20" width="170" height="190" rx="6" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+                <rect x="710" y="20" width="170" height="30" rx="6" fill="#92400e"/>
+                <text x="720" y="40" fill="#fff" font-weight="bold" font-size="12">prospectos (PK, FK)</text>
+                <text x="720" y="70" fill="#fde68a" font-size="10">PK: id (INT)</text>
+                <text x="720" y="90" fill="#6ee7b7" font-size="10">FK: empresa_id</text>
+                <text x="720" y="110" fill="#c4b5fd" font-size="10">contacto_principal</text>
+                <text x="720" y="130" fill="#cbd5e1" font-size="10">plan_seleccionado</text>
+                <text x="720" y="150" fill="#cbd5e1" font-size="10">costo_mensual, valor_anual</text>
+                <text x="720" y="170" fill="#cbd5e1" font-size="10">etapa (Pipeline)</text>
+                <text x="720" y="190" fill="#93c5fd" font-size="10">FK: usuario_id</text>
+
+                <!-- Líneas de Relación -->
+                <!-- Usuarios -> Empresas -->
+                <path d="M 180 90 L 240 90" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4 2"/>
+                <!-- Empresas -> Contactos (1 a N) -->
+                <path d="M 410 90 L 470 90" stroke="#10b981" stroke-width="2"/>
+                <circle cx="410" cy="90" r="3" fill="#10b981"/>
+                <text x="425" y="80" fill="#10b981" font-size="11">1:N</text>
+                <!-- Contactos -> Prospectos -->
+                <path d="M 650 90 L 710 90" stroke="#8b5cf6" stroke-width="2"/>
+                <circle cx="650" cy="90" r="3" fill="#8b5cf6"/>
+                <text x="665" y="80" fill="#8b5cf6" font-size="11">1:N</text>
+
+                <!-- Tabla Seguimientos y Tareas (Inferior) -->
+                <rect x="240" y="230" width="280" height="75" rx="6" fill="#0f172a" stroke="#cbd5e1" stroke-width="1.5"/>
+                <text x="250" y="250" fill="#fff" font-weight="bold" font-size="11">seguimientos & tareas (FK: prospecto_id, usuario_id)</text>
+                <text x="250" y="270" fill="#94a3b8" font-size="10">Registro de llamadas, WhatsApp, reuniones, notas y tareas con alertas de inactividad</text>
+
+                <!-- Tabla Auditoría (Inferior) -->
+                <rect x="560" y="230" width="320" height="75" rx="6" fill="#0f172a" stroke="#cbd5e1" stroke-width="1.5"/>
+                <text x="570" y="250" fill="#fff" font-weight="bold" font-size="11">auditoria (Inmutable - Log de Seguridad)</text>
+                <text x="570" y="270" fill="#94a3b8" font-size="10">fecha, hora, usuario, acción, módulo, registro_afectado, IP origen</text>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 3. CASOS DE USO Y FLUJOS -->
+          <div class="doc-section-card">
+            <h3>&#128640; 3. Casos de Uso y Flujos Operacionales</h3>
+            <div class="doc-flow-step">
+              <span class="doc-flow-badge">CU-01</span>
+              <div>
+                <strong>Autenticación y Control de Acceso (RBAC):</strong> Cada colaborador ingresa con credenciales privadas. Al cambiar de usuario, la sesión se destruye por completo y se audita con marca de tiempo e IP.
+              </div>
+            </div>
+            <div class="doc-flow-step">
+              <span class="doc-flow-badge">CU-02</span>
+              <div>
+                <strong>Prospección y Relación Empresa-Contacto:</strong> Toda empresa creada mantiene la colección de sus contactos. Un contacto no puede existir en el vacío, está formalmente vinculado a su razón social y RNC.
+              </div>
+            </div>
+            <div class="doc-flow-step">
+              <span class="doc-flow-badge">CU-03</span>
+              <div>
+                <strong>Cotización Automática del Pipeline:</strong> Al seleccionar un Plan Oficial IB SYSTEM (Básico, PYME, Empresarial, Corporativo) y configurar la cantidad de usuarios por cada módulo específico, el CRM calcula en tiempo real el valor mensual y anual.
+              </div>
+            </div>
+            <div class="doc-flow-step">
+              <span class="doc-flow-badge">CU-04</span>
+              <div>
+                <strong>Importación Masiva Inteligente:</strong> Lectura de archivos Excel/CSV con detección heurística de las 12 columnas oficiales de IB SYSTEM, deduplicación de prospectos y generación automática de empresas y decisores.
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. ESTRUCTURA DE BASE DE DATOS (Prioridad #11) -->
+          <div class="doc-section-card">
+            <h3>&#128452; 4. Estructura de Base de Datos (MySQL 8.0 & JSON)</h3>
+            <p style="font-size:13px; color:#cbd5e1;">Esquema normalizado relacional diseñado para alta integridad referencial, trazabilidad inmutable y soporte multiusuario:</p>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:12px;">
+              <div style="background:#070a12; padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:11px;">
+                <strong style="color:#60a5fa;">usuarios</strong>
+                <p style="color:#94a3b8; margin:4px 0;">id (PK), nombre, apellido, email, usuario, password_hash, rol (RBAC), telefono, activo, empresa, subcuenta, fecha_creacion, ultimo_acceso, ultimo_cierre.</p>
+              </div>
+              <div style="background:#070a12; padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:11px;">
+                <strong style="color:#34d399;">empresas</strong>
+                <p style="color:#94a3b8; margin:4px 0;">id (PK), razon_social, nombre_comercial, rnc (UNIQUE), direccion, ciudad, provincia, telefono, correo, sitio_web, industria, responsable_comercial, usuario_id (FK), estado_comercial.</p>
+              </div>
+              <div style="background:#070a12; padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:11px;">
+                <strong style="color:#a78bfa;">contactos</strong>
+                <p style="color:#94a3b8; margin:4px 0;">id (PK), nombre, apellido, empresa_id (FK), empresa, cargo, telefono, whatsapp, correo, direccion, ciudad, provincia, naturaleza_negocio, estado_comercial, producto_interes, modulo_principal, responsable_comercial, usuario_id (FK), proximo_seguimiento, notas, etiquetas.</p>
+              </div>
+              <div style="background:#070a12; padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:11px;">
+                <strong style="color:#fbbf24;">prospectos (Pipeline)</strong>
+                <p style="color:#94a3b8; margin:4px 0;">id (PK), empresa_id (FK), empresa, contacto_principal, telefono, whatsapp, correo, canal_captacion, plan_seleccionado, costo_base, modulos_adicionales, costo_adicional, costo_mensual, valor_estimado (anual), cantidad_usuarios, etapa, responsable_comercial, usuario_id (FK), dias_sin_seguimiento.</p>
+              </div>
+              <div style="background:#070a12; padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:11px;">
+                <strong style="color:#f87171;">seguimientos & tareas</strong>
+                <p style="color:#94a3b8; margin:4px 0;">id (PK), prospecto_id (FK), canal (Llamada, WhatsApp, Correo, Reunión, Nota), fecha, hora, resultado, observaciones, proxima_accion, fecha_proximo_seguimiento, usuario_id (FK).</p>
+              </div>
+              <div style="background:#070a12; padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:11px;">
+                <strong style="color:#38bdf8;">auditoria (Inmutable)</strong>
+                <p style="color:#94a3b8; margin:4px 0;">id (PK), fecha, hora, usuario, usuario_id, accion (Login, Logout, Creación, Edición, Eliminación, Migración), modulo, registro_afectado, detalles, ip.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. FLUJO DE IMPORTACIÓN INTELIGENTE (Prioridad #11) -->
+          <div class="doc-section-card">
+            <h3>&#8681; 5. Flujo de Importación Inteligente de Datos</h3>
+            <p style="font-size:13px; color:#cbd5e1; margin-bottom:14px;">Pipeline de procesamiento de archivos Excel (.xlsx) y CSV externos con validación heurística y deduplicación:</p>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <div class="doc-flow-step">
+                <span class="doc-flow-badge" style="background:#3b82f6;">Paso 1</span>
+                <div>
+                  <strong>Carga del Archivo:</strong> Selección o arrastre de archivo .xlsx o .csv. Decodificación instantánea en memoria mediante SheetJS (<code>XLSX.read</code>).
+                </div>
+              </div>
+              <div class="doc-flow-step">
+                <span class="doc-flow-badge" style="background:#6366f1;">Paso 2</span>
+                <div>
+                  <strong>Mapeo Heurístico Automático:</strong> Detección automática de encabezados IB SYSTEM (Empresa, Contacto, Teléfono, Correo, Naturaleza, POS Digital, Certificado FE, Módulos, Estado).
+                </div>
+              </div>
+              <div class="doc-flow-step">
+                <span class="doc-flow-badge" style="background:#8b5cf6;">Paso 3</span>
+                <div>
+                  <strong>Deduplicación & Validación en Tiempo Real:</strong> Cotejo por RNC, correo electrónico y teléfono normalizado contra el padrón activo para prevenir registros duplicados.
+                </div>
+              </div>
+              <div class="doc-flow-step">
+                <span class="doc-flow-badge" style="background:#10b981;">Paso 4</span>
+                <div>
+                  <strong>Inserción Concurrente y Auditoría:</strong> Creación atómica de la Empresa, el Contacto directivo asociado y la Oportunidad en el Pipeline Comercial con registro de auditoría.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. FLUJO DEL PIPELINE COMERCIAL (Prioridad #11) -->
+          <div class="doc-section-card">
+            <h3>&#128200; 6. Flujo del Pipeline Comercial & Ciclo de Conversión</h3>
+            <p style="font-size:13px; color:#cbd5e1; margin-bottom:14px;">Ciclo de vida de prospectos y conversión comercial para IB SYSTEM S.R.L.:</p>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+              <div style="background:#070a12; padding:12px; border-radius:8px; border-top:3px solid #3b82f6; font-size:12px;">
+                <strong style="color:#60a5fa;">1. Contacto Inicial</strong>
+                <p style="color:#94a3b8; font-size:11px; margin-top:4px;">Captación vía importación, web o llamada. Registro de decisor y empresa asociada.</p>
+              </div>
+              <div style="background:#070a12; padding:12px; border-radius:8px; border-top:3px solid #6366f1; font-size:12px;">
+                <strong style="color:#a5b4fc;">2. Interesado</strong>
+                <p style="color:#94a3b8; font-size:11px; margin-top:4px;">Demostración técnica de Facturación Electrónica o POS Digital. Calificación de necesidades.</p>
+              </div>
+              <div style="background:#070a12; padding:12px; border-radius:8px; border-top:3px solid #f59e0b; font-size:12px;">
+                <strong style="color:#fde68a;">3. Propuesta Enviada</strong>
+                <p style="color:#94a3b8; font-size:11px; margin-top:4px;">Cotización formal con cálculo automático según plan y cantidad de usuarios por módulo.</p>
+              </div>
+              <div style="background:#070a12; padding:12px; border-radius:8px; border-top:3px solid #10b981; font-size:12px;">
+                <strong style="color:#6ee7b7;">4. Cierre Exitoso (Ganado)</strong>
+                <p style="color:#94a3b8; font-size:11px; margin-top:4px;">Firma de contrato, pase a cliente activo y cálculo del valor anualizado recurrente.</p>
+              </div>
+            </div>
+            <div style="margin-top:14px; padding:10px; background:#1e293b; border-radius:6px; font-size:11px; color:#cbd5e1;">
+              &#9889; <strong>Motor de Alertas Automáticas:</strong> El sistema monitorea la última interacción de cada prospecto y genera alertas a los <strong>3, 5, 7 y 15 días</strong> sin seguimiento para evitar fugas comerciales.
             </div>
           </div>
         </section>
@@ -1122,25 +1577,83 @@
             </div>
 
             <div class="form-group" style="margin-top: 10px;">
-              <label>Módulos Adicionales (Seleccionar - Costo Mensual por Usuario)</label>
-              <div class="modules-check-grid">
-                <label><input type="checkbox" value="Inventario" data-cost="8" class="module-check" onchange="calculatePricing()"> Inventario (US$ 8/usuario)</label>
-                <label><input type="checkbox" value="Compras" data-cost="6" class="module-check" onchange="calculatePricing()"> Compras (US$ 6/usuario)</label>
-                <label><input type="checkbox" value="Ventas" data-cost="8" class="module-check" onchange="calculatePricing()"> Ventas (US$ 8/usuario)</label>
-                <label><input type="checkbox" value="Caja" data-cost="5" class="module-check" onchange="calculatePricing()"> Caja (US$ 5/usuario)</label>
-                <label><input type="checkbox" value="Contabilidad" data-cost="12" class="module-check" onchange="calculatePricing()"> Contabilidad (US$ 12/usuario)</label>
-                <label><input type="checkbox" value="Cuentas por Cobrar" data-cost="7" class="module-check" onchange="calculatePricing()"> Ctas. por Cobrar (US$ 7/usuario)</label>
-                <label><input type="checkbox" value="Cuentas por Pagar" data-cost="7" class="module-check" onchange="calculatePricing()"> Ctas. por Pagar (US$ 7/usuario)</label>
-                <label><input type="checkbox" value="Reportes Gerenciales" data-cost="10" class="module-check" onchange="calculatePricing()"> Reportes Gerenciales (US$ 10/usuario)</label>
-              </div>
+              <label><strong>Módulos Adicionales (Configurar Usuarios por Módulo - Prioridad #6)</strong></label>
+              <table class="modules-pricing-table">
+                <thead>
+                  <tr>
+                    <th style="width: 35px; text-align: center;">Activo</th>
+                    <th>Módulo</th>
+                    <th>Costo Unitario</th>
+                    <th style="width: 100px; text-align: center;">Usuarios</th>
+                    <th style="width: 100px; text-align: right;">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: center;"><input type="checkbox" value="Inventario" data-cost="8" id="mod_Inventario" class="module-check" onchange="calculatePricing()"></td>
+                    <td><label for="mod_Inventario" style="margin:0; cursor:pointer; color:#fff;">Inventario</label></td>
+                    <td>US$ 8.00 / usuario</td>
+                    <td style="text-align: center;"><input type="number" min="1" max="100" value="2" id="users_Inventario" class="module-user-input" oninput="calculatePricing()"></td>
+                    <td style="text-align: right; font-weight:700;" id="sub_Inventario">US$ 0.00</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center;"><input type="checkbox" value="Compras" data-cost="6" id="mod_Compras" class="module-check" onchange="calculatePricing()"></td>
+                    <td><label for="mod_Compras" style="margin:0; cursor:pointer; color:#fff;">Compras</label></td>
+                    <td>US$ 6.00 / usuario</td>
+                    <td style="text-align: center;"><input type="number" min="1" max="100" value="1" id="users_Compras" class="module-user-input" oninput="calculatePricing()"></td>
+                    <td style="text-align: right; font-weight:700;" id="sub_Compras">US$ 0.00</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center;"><input type="checkbox" value="Ventas" data-cost="8" id="mod_Ventas" class="module-check" onchange="calculatePricing()"></td>
+                    <td><label for="mod_Ventas" style="margin:0; cursor:pointer; color:#fff;">Ventas</label></td>
+                    <td>US$ 8.00 / usuario</td>
+                    <td style="text-align: center;"><input type="number" min="1" max="100" value="4" id="users_Ventas" class="module-user-input" oninput="calculatePricing()"></td>
+                    <td style="text-align: right; font-weight:700;" id="sub_Ventas">US$ 0.00</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center;"><input type="checkbox" value="Caja" data-cost="5" id="mod_Caja" class="module-check" onchange="calculatePricing()"></td>
+                    <td><label for="mod_Caja" style="margin:0; cursor:pointer; color:#fff;">Caja</label></td>
+                    <td>US$ 5.00 / usuario</td>
+                    <td style="text-align: center;"><input type="number" min="1" max="100" value="1" id="users_Caja" class="module-user-input" oninput="calculatePricing()"></td>
+                    <td style="text-align: right; font-weight:700;" id="sub_Caja">US$ 0.00</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center;"><input type="checkbox" value="Contabilidad" data-cost="12" id="mod_Contabilidad" class="module-check" onchange="calculatePricing()"></td>
+                    <td><label for="mod_Contabilidad" style="margin:0; cursor:pointer; color:#fff;">Contabilidad</label></td>
+                    <td>US$ 12.00 / usuario</td>
+                    <td style="text-align: center;"><input type="number" min="1" max="100" value="3" id="users_Contabilidad" class="module-user-input" oninput="calculatePricing()"></td>
+                    <td style="text-align: right; font-weight:700;" id="sub_Contabilidad">US$ 0.00</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center;"><input type="checkbox" value="Cuentas por Cobrar" data-cost="7" id="mod_CuentasCobrar" class="module-check" onchange="calculatePricing()"></td>
+                    <td><label for="mod_CuentasCobrar" style="margin:0; cursor:pointer; color:#fff;">Cuentas por Cobrar</label></td>
+                    <td>US$ 7.00 / usuario</td>
+                    <td style="text-align: center;"><input type="number" min="1" max="100" value="1" id="users_CuentasCobrar" class="module-user-input" oninput="calculatePricing()"></td>
+                    <td style="text-align: right; font-weight:700;" id="sub_CuentasCobrar">US$ 0.00</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center;"><input type="checkbox" value="Cuentas por Pagar" data-cost="7" id="mod_CuentasPagar" class="module-check" onchange="calculatePricing()"></td>
+                    <td><label for="mod_CuentasPagar" style="margin:0; cursor:pointer; color:#fff;">Cuentas por Pagar</label></td>
+                    <td>US$ 7.00 / usuario</td>
+                    <td style="text-align: center;"><input type="number" min="1" max="100" value="1" id="users_CuentasPagar" class="module-user-input" oninput="calculatePricing()"></td>
+                    <td style="text-align: right; font-weight:700;" id="sub_CuentasPagar">US$ 0.00</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center;"><input type="checkbox" value="Reportes Gerenciales" data-cost="10" id="mod_Reportes" class="module-check" onchange="calculatePricing()"></td>
+                    <td><label for="mod_Reportes" style="margin:0; cursor:pointer; color:#fff;">Reportes Gerenciales</label></td>
+                    <td>US$ 10.00 / usuario</td>
+                    <td style="text-align: center;"><input type="number" min="1" max="100" value="2" id="users_Reportes" class="module-user-input" oninput="calculatePricing()"></td>
+                    <td style="text-align: right; font-weight:700;" id="sub_Reportes">US$ 0.00</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             <div class="pricing-summary-bar">
-              <div>Costo Base: <strong id="calcBase">US$ 45.00</strong></div>
+              <div>Costo Base (Plan): <strong id="calcBase">US$ 45.00</strong></div>
               <div>Costo Módulos (x usuarios): <strong id="calcModulos">US$ 0.00</strong></div>
-              <div>Costo por Usuario: <strong id="calcPorUsuario">US$ 0.00</strong></div>
               <div>Total Mensual: <strong id="calcMensual" class="text-success">US$ 45.00</strong></div>
-              <div>Total Anual: <strong id="calcAnual" class="text-primary">US$ 540.00</strong></div>
+              <div>Total Anual (12m): <strong id="calcAnual" class="text-primary">US$ 540.00</strong></div>
             </div>
           </div>
         </div>
@@ -1486,6 +1999,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeModal('modalDetalleContacto')">Cerrar</button>
+        <button type="button" class="btn btn-success" id="btnCrearOportunidadDesdeDetalleContacto">+ Crear Oportunidad</button>
         <button type="button" class="btn btn-primary" id="btnEditarDesdeDetalleContacto">Editar Contacto</button>
       </div>
     </div>
@@ -1593,6 +2107,25 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeModal('modalAsignarEtiquetaMasivo')">Cancelar</button>
         <button type="button" class="btn btn-primary" onclick="ejecutarAsignarEtiquetaMasivo()">Asignar Etiqueta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VISTA PREVIA E IMPRESIÓN OFICIAL PDF (Prioridad #8) -->
+  <div id="modalPDFPreview" class="modal-backdrop hidden">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-header">
+        <h3 id="pdfModalTitle">&#128438; Reporte Institucional Imprimible (PDF)</h3>
+        <button class="btn-close" onclick="closeModal('modalPDFPreview')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="pdfPrintableContent" class="pdf-printable-area">
+          <!-- Generado dinámicamente por exportPDF() -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalPDFPreview')">Cerrar</button>
+        <button type="button" class="btn btn-primary" onclick="window.print()">&#128438; Imprimir / Guardar como PDF</button>
       </div>
     </div>
   </div>

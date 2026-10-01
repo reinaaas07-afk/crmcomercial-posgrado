@@ -636,6 +636,7 @@ function renderContactosTable() {
         <td>${escapeHtml(c.responsable_comercial || 'Yenifer Reina')}</td>
         <td>
           <button class="btn btn-outline-primary btn-sm" onclick="openContactoDetalle(${c.id})" title="Ver Ficha Completa">&#128065; Ficha</button>
+          <button class="btn btn-outline-success btn-sm" onclick="crearOportunidadDesdeContacto(${c.id})" title="Crear Oportunidad desde Contacto">+ Op</button>
           <button class="btn btn-outline btn-sm" onclick="editContacto(${c.id})">Editar</button>
           <button class="btn btn-outline-danger btn-sm" onclick="deleteContacto(${c.id})">Eliminar</button>
         </td>
@@ -1328,6 +1329,14 @@ function openContactoDetalle(contactoId) {
     }
   }
 
+  // Botón Crear Oportunidad desde Ficha de Contacto (Prioridad #3)
+  const btnCrearOp = document.getElementById('btnCrearOportunidadDesdeDetalleContacto');
+  if (btnCrearOp) {
+    btnCrearOp.onclick = () => {
+      crearOportunidadDesdeContacto(c.id);
+    };
+  }
+
   // Botón Editar
   const btnEdit = document.getElementById('btnEditarDesdeDetalleContacto');
   if (btnEdit) {
@@ -1338,6 +1347,51 @@ function openContactoDetalle(contactoId) {
   }
 
   openModal('modalDetalleContacto');
+}
+
+// Crear Oportunidad Comercial Directamente desde un Contacto (Prioridad #3)
+function crearOportunidadDesdeContacto(contactoId) {
+  const c = (state.db.contactos || []).find((item) => item.id === Number(contactoId));
+  if (!c) {
+    alert('Contacto no encontrado.');
+    return;
+  }
+
+  closeModal('modalDetalleContacto');
+  closeModal('modalContacto');
+
+  // Limpiar campos del modal oportunidad
+  document.getElementById('prospectoId').value = '';
+  document.getElementById('modalProspectoTitle').textContent = `Nueva Oportunidad - ${c.nombre} ${c.apellido || ''}`;
+
+  openModal('modalProspecto');
+
+  // 1. Seleccionar Empresa automáticamente
+  const empSelect = document.getElementById('prosEmpresaSelect');
+  if (empSelect) {
+    let matchedEmpId = c.empresa_id;
+    if (!matchedEmpId && c.empresa) {
+      const foundEmp = (state.db.empresas || []).find(
+        (e) => (e.razon_social || '').toLowerCase() === c.empresa.toLowerCase()
+      );
+      if (foundEmp) matchedEmpId = foundEmp.id;
+    }
+
+    if (matchedEmpId) {
+      empSelect.value = matchedEmpId;
+      handleProsEmpresaChange();
+    }
+  }
+
+  // 2. Seleccionar este contacto y auto-completar teléfono, whatsapp, correo y responsable
+  const contSelect = document.getElementById('prosContactoSelect');
+  if (contSelect) {
+    contSelect.value = c.id;
+    handleProsContactoChange();
+  }
+
+  // Pre-cargar producto o módulos si los tiene especificados
+  calculatePricing();
 }
 
 // --------------------------------------------------------------------------
@@ -2354,6 +2408,159 @@ function exportData(moduleName, format = 'csv') {
     link.click();
     document.body.removeChild(link);
   }
+}
+
+// --------------------------------------------------------------------------
+// EXPORTACIÓN A PDF OFICIAL INSTITUCIONAL (Prioridad #8)
+// --------------------------------------------------------------------------
+function exportPDF(moduleName) {
+  let title = 'Reporte Oficial';
+  let subtitle = 'Proyecto de Posgrado - CRMComercial IB SYSTEM S.R.L.';
+  let headers = [];
+  let rowsHtml = '';
+  let count = 0;
+
+  const now = new Date();
+  const fechaStr = `${now.toISOString().split('T')[0]} ${now.toTimeString().slice(0, 8)}`;
+  const usuarioActual = state.currentUser ? `${state.currentUser.nombre} (${state.currentUser.rol})` : 'Administrador General';
+
+  if (moduleName === 'empresas') {
+    title = 'Directorio Corporativo de Empresas Clientes y Prospectos';
+    const data = state.db.empresas || [];
+    count = data.length;
+    headers = ['Razón Social', 'RNC', 'Teléfono', 'Correo', 'Ciudad / Provincia', 'Industria', 'Estado Comercial', 'Responsable'];
+    rowsHtml = data.map((e) => `
+      <tr>
+        <td><strong>${escapeHtml(e.razon_social)}</strong></td>
+        <td>${escapeHtml(e.rnc || '-')}</td>
+        <td>${escapeHtml(e.telefono || '-')}</td>
+        <td>${escapeHtml(e.correo || '-')}</td>
+        <td>${escapeHtml(e.ciudad || 'Santo Domingo')}, ${escapeHtml(e.provincia || 'D.N.')}</td>
+        <td>${escapeHtml(e.industria || '-')}</td>
+        <td><span class="badge" style="background:#1e3a8a; padding:2px 6px;">${escapeHtml(e.estado_comercial || 'Prospecto')}</span></td>
+        <td>${escapeHtml(e.responsable_comercial || '-')}</td>
+      </tr>
+    `).join('');
+  } else if (moduleName === 'contactos') {
+    title = 'Directorio de Contactos y Decisores Comerciales';
+    const data = state.currentFilteredContactos && state.currentFilteredContactos.length > 0
+      ? state.currentFilteredContactos
+      : (state.db.contactos || []);
+    count = data.length;
+    headers = ['Contacto', 'Empresa Asociada', 'Cargo', 'Teléfono / WhatsApp', 'Correo', 'Solución de Interés', 'Módulo', 'Responsable'];
+    rowsHtml = data.map((c) => `
+      <tr>
+        <td><strong>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido || '')}</strong></td>
+        <td>${escapeHtml(c.empresa || '-')}</td>
+        <td>${escapeHtml(c.cargo || '-')}</td>
+        <td>${escapeHtml(c.telefono || c.whatsapp || '-')}</td>
+        <td>${escapeHtml(c.correo || '-')}</td>
+        <td>${escapeHtml(c.producto_interes || 'Facturación Electrónica')}</td>
+        <td>${escapeHtml(c.modulo_principal || 'Ventas')}</td>
+        <td>${escapeHtml(c.responsable_comercial || '-')}</td>
+      </tr>
+    `).join('');
+  } else if (moduleName === 'prospectos') {
+    title = 'Pipeline Comercial & Proyecciones Económicas Anuales';
+    const data = state.db.prospectos || [];
+    count = data.length;
+    let totalMensual = 0;
+    let totalAnual = 0;
+    headers = ['Empresa', 'Contacto Principal', 'Plan Comercial', 'Usuarios', 'Costo Mensual', 'Proyección Anual', 'Etapa', 'Responsable'];
+    rowsHtml = data.map((p) => {
+      totalMensual += Number(p.costo_mensual || 0);
+      totalAnual += Number(p.valor_estimado || 0);
+      return `
+        <tr>
+          <td><strong>${escapeHtml(p.empresa)}</strong></td>
+          <td>${escapeHtml(p.contacto_principal || '-')}</td>
+          <td>${escapeHtml(p.plan_seleccionado || 'PYME')}</td>
+          <td style="text-align:center;">${escapeHtml(p.cantidad_usuarios || 1)}</td>
+          <td style="text-align:right;"><strong>US$ ${Number(p.costo_mensual || 0).toFixed(2)}</strong></td>
+          <td style="text-align:right; color:#2563eb;"><strong>US$ ${Number(p.valor_estimado || 0).toFixed(2)}</strong></td>
+          <td><span class="badge" style="background:#1e3a8a; padding:2px 6px;">${escapeHtml(p.etapa || 'Contacto')}</span></td>
+          <td>${escapeHtml(p.responsable_comercial || '-')}</td>
+        </tr>
+      `;
+    }).join('');
+    rowsHtml += `
+      <tr style="background:#1e293b; font-weight:bold;">
+        <td colspan="4" style="text-align:right;">TOTALES DEL PIPELINE:</td>
+        <td style="text-align:right; color:#10b981;">US$ ${totalMensual.toFixed(2)}/mes</td>
+        <td style="text-align:right; color:#3b82f6;">US$ ${totalAnual.toFixed(2)}/año</td>
+        <td colspan="2"></td>
+      </tr>
+    `;
+  } else if (moduleName === 'auditoria') {
+    title = 'Bitácora Inmutable de Auditoría & Control de Accesos';
+    const data = state.db.auditoria || [];
+    count = data.length;
+    headers = ['Fecha / Hora', 'Usuario', 'Acción', 'Módulo', 'Registro Afectado', 'Detalles', 'Dirección IP'];
+    rowsHtml = data.map((a) => `
+      <tr>
+        <td>${escapeHtml(a.fecha)} ${escapeHtml(a.hora)}</td>
+        <td><strong>${escapeHtml(a.usuario)}</strong></td>
+        <td>${escapeHtml(a.accion)}</td>
+        <td>${escapeHtml(a.modulo)}</td>
+        <td>${escapeHtml(a.registro_afectado || '-')}</td>
+        <td>${escapeHtml(a.detalles || '-')}</td>
+        <td><code>${escapeHtml(a.ip || '-')}</code></td>
+      </tr>
+    `).join('');
+  } else if (moduleName === 'documentacion') {
+    title = 'Memoria Técnica de Arquitectura & Base de Datos';
+    count = 1;
+    headers = ['Componente', 'Tecnología', 'Función en el Sistema'];
+    rowsHtml = `
+      <tr><td><strong>Capa de Presentación</strong></td><td>HTML5 / CSS3 / Vanilla JS</td><td>Interfaz responsiva multidispositivo para PC, tablets y smartphones</td></tr>
+      <tr><td><strong>Servidor de Aplicación</strong></td><td>Node.js & Express.js</td><td>Servidor RESTful escuchando en 0.0.0.0:3000 para red LAN</td></tr>
+      <tr><td><strong>Base de Datos Relacional</strong></td><td>MySQL 8.0 & JSON Fallback</td><td>Esquema DDL normalizado con persistencia inmutable</td></tr>
+      <tr><td><strong>Seguridad & RBAC</strong></td><td>Control de Acceso por Roles</td><td>Sesiones independientes para Administrador, Supervisor y Ejecutivos</td></tr>
+      <tr><td><strong>Sustentación de Posgrado</strong></td><td>IB SYSTEM S.R.L.</td><td>Proyecto de Titulación de Posgrado - Diseño de CRM Comercial</td></tr>
+    `;
+  }
+
+  const printableHtml = `
+    <div class="pdf-header-box">
+      <div class="pdf-header-title">
+        <h2>IB SYSTEM S.R.L. &bull; CRMComercial</h2>
+        <p>${title}</p>
+        <p style="font-size:11px; color:#64748b; margin-top:2px;">${subtitle}</p>
+      </div>
+      <div class="pdf-header-meta">
+        <div><strong>Generado por:</strong> ${escapeHtml(usuarioActual)}</div>
+        <div><strong>Fecha y Hora:</strong> ${fechaStr}</div>
+        <div><strong>Total de Registros:</strong> ${count}</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="pdf-table">
+        <thead>
+          <tr>
+            ${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    </div>
+    <div class="pdf-footer-box">
+      <span>CRMComercial - Sistema de Gestión de Prospectos y Pipeline Comercial</span>
+      <span>IB SYSTEM S.R.L. &bull; República Dominicana</span>
+    </div>
+  `;
+
+  const container = document.getElementById('pdfPrintableContent');
+  if (container) {
+    container.innerHTML = printableHtml;
+  }
+  const titleEl = document.getElementById('pdfModalTitle');
+  if (titleEl) {
+    titleEl.textContent = `🖨️ ${title} (PDF)`;
+  }
+
+  openModal('modalPDFPreview');
 }
 
 // --------------------------------------------------------------------------

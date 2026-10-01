@@ -43,6 +43,7 @@ export interface ContactEntity {
   id: number;
   nombre: string;
   apellido: string;
+  empresa_id?: number | null;
   empresa: string;
   cargo: string;
   telefono: string;
@@ -53,11 +54,15 @@ export interface ContactEntity {
   ciudad: string;
   provincia: string;
   naturaleza_negocio: string;
+  estado_comercial?: string;
+  producto_interes?: string;
+  modulo_principal?: string;
   responsable_comercial: string;
   usuario_id: number;
   ultimo_contacto: string;
   proximo_seguimiento: string;
   notas: string;
+  observaciones_comerciales?: string;
   etiquetas: string;
   fecha_registro: string;
 }

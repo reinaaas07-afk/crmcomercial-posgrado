@@ -68,31 +68,54 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onSelectUser,
   onLogout,
 }) => {
-  const menuItems: {
-    id: SeccionApp;
-    label: string;
-    icon: React.ElementType;
-    badge?: number;
+  const menuSections: {
+    category: string;
+    items: {
+      id: SeccionApp;
+      label: string;
+      icon: React.ElementType;
+      badge?: number;
+    }[];
   }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'empresas', label: 'Empresas', icon: Building2, badge: empresasCount },
-    { id: 'contactos', label: 'Contactos', icon: Contact, badge: contactosCount },
-    { id: 'prospectos', label: 'Prospectos', icon: Users, badge: prospectosCount },
-    { id: 'pipeline', label: 'Pipeline Comercial', icon: Kanban },
-    { id: 'seguimientos', label: 'Seguimientos', icon: PhoneCall },
-    { id: 'tareas', label: 'Tareas', icon: CheckSquare, badge: tareasPendientesCount },
-    { id: 'calendario', label: 'Calendario', icon: Calendar },
-    { id: 'alertas', label: 'Alertas Comerciales', icon: AlertTriangle },
-    { id: 'objetivos', label: 'Objetivos & Metas', icon: Target },
-    { id: 'actividad', label: 'Actividad en Vivo', icon: Activity },
-    { id: 'reportes', label: 'Reportes', icon: BarChart3 },
-    { id: 'papelera', label: 'Papelera', icon: Trash2, badge: papeleraCount },
-    { id: 'importaciones', label: 'Importaciones', icon: FileUp },
-    { id: 'exportaciones', label: 'Exportaciones', icon: FileDown },
-    { id: 'usuarios', label: 'Usuarios y Roles', icon: ShieldCheck, badge: allUsers.length || undefined },
-    { id: 'auditoria', label: 'Auditoría del Sistema', icon: ShieldAlert },
-    { id: 'configuracion', label: 'Configuración', icon: Settings },
-    { id: 'documentacion', label: 'Documentación Técnica', icon: BookOpen },
+    {
+      category: 'PRINCIPAL',
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'contactos', label: 'Contactos', icon: Contact, badge: contactosCount },
+        { id: 'empresas', label: 'Empresas', icon: Building2, badge: empresasCount },
+        { id: 'pipeline', label: 'Pipeline Comercial', icon: Kanban },
+        { id: 'seguimientos', label: 'Seguimientos', icon: PhoneCall },
+      ],
+    },
+    {
+      category: 'GESTIÓN COMERCIAL',
+      items: [
+        { id: 'prospectos', label: 'Oportunidades', icon: Users, badge: prospectosCount },
+        { id: 'tareas', label: 'Tareas', icon: CheckSquare, badge: tareasPendientesCount },
+        { id: 'calendario', label: 'Calendario', icon: Calendar },
+        { id: 'objetivos', label: 'Metas Comerciales', icon: Target },
+        { id: 'alertas', label: 'Alertas Comerciales', icon: AlertTriangle },
+        { id: 'actividad', label: 'Actividad en Vivo', icon: Activity },
+      ],
+    },
+    {
+      category: 'DATOS Y REPORTES',
+      items: [
+        { id: 'importaciones', label: 'Importar Excel', icon: FileUp },
+        { id: 'exportaciones', label: 'Exportar Información', icon: FileDown },
+        { id: 'reportes', label: 'Reportes', icon: BarChart3 },
+        { id: 'auditoria', label: 'Auditoría Completa', icon: ShieldAlert },
+        { id: 'papelera', label: 'Papelera', icon: Trash2, badge: papeleraCount },
+      ],
+    },
+    {
+      category: 'ADMINISTRACIÓN',
+      items: [
+        { id: 'usuarios', label: 'Gestión de Usuarios', icon: ShieldCheck, badge: allUsers.length || undefined },
+        { id: 'configuracion', label: 'Configuración', icon: Settings },
+        { id: 'documentacion', label: 'Documentación Técnica', icon: BookOpen },
+      ],
+    },
   ];
 
   const handleItemClick = (id: SeccionApp) => {
@@ -145,40 +168,49 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         )}
       </div>
 
-      {/* Vertical Navigation Rows */}
-      <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
-          const isCollapsedView = collapsed && !isMobile;
+      {/* Categorized Vertical Navigation Rows */}
+      <nav className="flex-1 py-3 px-2 space-y-4 overflow-y-auto">
+        {menuSections.map((section, secIdx) => (
+          <div key={secIdx} className="space-y-1">
+            {(!collapsed || isMobile) && (
+              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                {section.category}
+              </div>
+            )}
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              const isCollapsedView = collapsed && !isMobile;
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleItemClick(item.id)}
-              title={isCollapsedView ? item.label : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-600/30'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900'
-              } ${isCollapsedView ? 'justify-center px-2' : ''}`}
-            >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              {!isCollapsedView && (
-                <span className="flex-1 text-left truncate">{item.label}</span>
-              )}
-              {!isCollapsedView && item.badge !== undefined && item.badge > 0 && (
-                <span
-                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
-                    isActive ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-300'
-                  }`}
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleItemClick(item.id)}
+                  title={isCollapsedView ? item.label : undefined}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-600/30'
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900'
+                  } ${isCollapsedView ? 'justify-center px-2' : ''}`}
                 >
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  {!isCollapsedView && (
+                    <span className="flex-1 text-left truncate">{item.label}</span>
+                  )}
+                  {!isCollapsedView && item.badge !== undefined && item.badge > 0 && (
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
+                        isActive ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-300'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Posgrado Accreditation & Administrator User Profile */}

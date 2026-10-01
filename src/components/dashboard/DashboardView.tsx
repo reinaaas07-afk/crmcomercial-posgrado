@@ -141,6 +141,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* ACCESOS RÁPIDOS EN DASHBOARD (Prioridad #13) */}
+      <div className="flex flex-wrap items-center gap-2.5 p-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-sm">
+        <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5 font-mono mr-1">
+          &#9889; Accesos R&aacute;pidos:
+        </span>
+        <button
+          onClick={() => onNavigateSection('empresas')}
+          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>+ Nueva Empresa</span>
+        </button>
+        <button
+          onClick={() => onNavigateSection('contactos')}
+          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>+ Nuevo Contacto</span>
+        </button>
+        <button
+          onClick={onOpenCreateLeadModal}
+          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>+ Nueva Oportunidad</span>
+        </button>
+        <button
+          onClick={() => onNavigateSection('importaciones')}
+          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>&#8681; Importar Excel</span>
+        </button>
+      </div>
+
       {/* 7-DAY INACTIVITY ALERT BANNER */}
       {inactiveLeads.length > 0 && (
         <div className="p-4 rounded-2xl bg-rose-950/30 border border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in">

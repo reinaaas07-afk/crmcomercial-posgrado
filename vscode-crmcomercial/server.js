@@ -97,7 +97,7 @@ app.get('/api/db/all', (req, res) => {
   res.json(data);
 });
 
-// 3. Autenticación: Login
+// 3. Autenticación: Login (Prioridad #1: Cada usuario con credencial propia, sin bypass)
 app.post('/api/auth/login', (req, res) => {
   const { usuario, password } = req.body;
   const ip = getClientIp(req);
@@ -107,7 +107,7 @@ app.post('/api/auth/login', (req, res) => {
     (u) =>
       (u.usuario.toLowerCase() === (usuario || '').trim().toLowerCase() ||
         u.email.toLowerCase() === (usuario || '').trim().toLowerCase()) &&
-      (u.password_hash === password || password === 'Admin123*')
+      u.password_hash === password
   );
 
   if (!user) {
@@ -134,7 +134,7 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-// 4. Autenticación: Logout
+// 4. Autenticación: Logout (Prioridad #1: Registro inmutable de fecha, hora e IP)
 app.post('/api/auth/logout', (req, res) => {
   const { usuario_id, usuario } = req.body;
   const ip = getClientIp(req);
@@ -169,9 +169,177 @@ app.post('/api/auth/recuperar', (req, res) => {
 
   res.json({
     success: true,
-    message: `Credenciales recuperadas. Usuario: ${user.usuario} | Contraseña: ${user.password_hash}`,
-    usuario: user.usuario,
-    password: user.password_hash
+    message: `Credenciales verificadas. Tu usuario es: ${user.usuario}`,
+    usuario: user.usuario
+  });
+});
+
+// 5.1 CRUD de Usuarios y Control de Acceso (Prioridad #1: Administrador General)
+app.get('/api/usuarios', (req, res) => {
+  const data = db.getLocalData();
+  // Enviar usuarios sin exponer hash en listado si se desea, pero manteniendo soporte
+  res.json(data.usuarios || []);
+});
+
+app.post('/api/usuarios', (req, res) => {
+  const data = db.getLocalData();
+  const ip = getClientIp(req);
+
+  const { nombre, apellido, email, usuario, password_hash, rol, telefono, autor } = req.body;
+
+  if (!nombre || !usuario || !email || !password_hash) {
+    return res.status(400).json({ error: 'Todos los campos obligatorios deben completarse.' });
+  }
+
+  // Verificar si ya existe usuario o email
+  const existing = data.usuarios.find(
+    (u) => u.usuario.toLowerCase() === usuario.trim().toLowerCase() || u.email.toLowerCase() === email.trim().toLowerCase()
+  );
+  if (existing) {
+    return res.status(400).json({ error: 'El nombre de usuario o correo ya está en uso por otro miembro del equipo.' });
+  }
+
+  const now = new Date();
+  const timestamp = `${now.toISOString().split('T')[0]} ${now.toTimeString().slice(0, 8)}`;
+
+  const nuevoUsuario = {
+    id: Date.now(),
+    nombre: nombre.trim(),
+    apellido: (apellido || '').trim(),
+    email: email.trim().toLowerCase(),
+    usuario: usuario.trim(),
+    password_hash: password_hash.trim(),
+    rol: rol || 'Ejecutivo Comercial',
+    telefono: telefono || '+1 809-000-0000',
+    activo: true,
+    empresa: 'IB SYSTEM S.R.L.',
+    subcuenta: 'Sede Principal Santo Domingo',
+    fecha_creacion: timestamp,
+    ultimo_acceso: null,
+    ultimo_cierre: null
+  };
+
+  data.usuarios.push(nuevoUsuario);
+  logAudit(autor || 'Administrador General', 'Creación', 'Usuarios', nuevoUsuario.nombre, `Creó usuario ${nuevoUsuario.usuario} con rol ${nuevoUsuario.rol}`, ip);
+  db.saveLocalData(data);
+
+  res.status(201).json(nuevoUsuario);
+});
+
+app.put('/api/usuarios/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const data = db.getLocalData();
+  const ip = getClientIp(req);
+  const idx = data.usuarios.findIndex((u) => u.id === id);
+
+  if (idx === -1) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+  const old = data.usuarios[idx];
+  const { nombre, apellido, email, rol, telefono, activo, autor, password_hash } = req.body;
+
+  data.usuarios[idx] = {
+    ...old,
+    nombre: nombre !== undefined ? nombre.trim() : old.nombre,
+    apellido: apellido !== undefined ? apellido.trim() : old.apellido,
+    email: email !== undefined ? email.trim().toLowerCase() : old.email,
+    rol: rol !== undefined ? rol : old.rol,
+    telefono: telefono !== undefined ? telefono : old.telefono,
+    activo: activo !== undefined ? Boolean(activo) : old.activo,
+    password_hash: password_hash ? password_hash.trim() : old.password_hash
+  };
+
+  logAudit(autor || 'Administrador General', 'Edición', 'Usuarios', data.usuarios[idx].nombre, `Actualizó datos y rol (${data.usuarios[idx].rol})`, ip);
+  db.saveLocalData(data);
+
+  res.json(data.usuarios[idx]);
+});
+
+app.post('/api/usuarios/:id/reset-password', (req, res) => {
+  const id = Number(req.params.id);
+  const { nueva_password, autor } = req.body;
+  const ip = getClientIp(req);
+  const data = db.getLocalData();
+  const user = data.usuarios.find((u) => u.id === id);
+
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+  if (!nueva_password || nueva_password.trim().length < 6) {
+    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+  }
+
+  user.password_hash = nueva_password.trim();
+  logAudit(autor || 'Administrador General', 'Seguridad', 'Usuarios', user.nombre, `Restableció contraseña para el usuario ${user.usuario}`, ip);
+  db.saveLocalData(data);
+
+  res.json({ success: true, message: `Contraseña actualizada exitosamente para ${user.usuario}.` });
+});
+
+app.delete('/api/usuarios/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const data = db.getLocalData();
+  const ip = getClientIp(req);
+  const user = data.usuarios.find((u) => u.id === id);
+
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+  if (user.rol === 'Administrador General' && user.id === 1) {
+    return res.status(403).json({ error: 'No es posible eliminar al Administrador General principal del sistema.' });
+  }
+
+  data.usuarios = data.usuarios.filter((u) => u.id !== id);
+  logAudit(req.query.autor || 'Administrador General', 'Eliminación', 'Usuarios', user.nombre, `Eliminó cuenta de usuario ${user.usuario}`, ip);
+  db.saveLocalData(data);
+
+  res.json({ success: true, message: 'Usuario eliminado exitosamente.' });
+});
+
+app.get('/api/usuarios/:id/actividad', (req, res) => {
+  const id = Number(req.params.id);
+  const data = db.getLocalData();
+  const user = data.usuarios.find((u) => u.id === id);
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+  const logs = (data.auditoria || []).filter(
+    (a) => a.usuario.toLowerCase().includes(user.usuario.toLowerCase()) || a.usuario.toLowerCase().includes(user.nombre.toLowerCase())
+  );
+  res.json(logs);
+});
+
+// Endpoint de Información del Sistema y Red (Prioridad #2: Multi-dispositivo)
+app.get('/api/system/info', (req, res) => {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  let localIp = '127.0.0.1';
+
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIp = iface.address;
+        break;
+      }
+    }
+  }
+
+  const data = db.getLocalData();
+
+  res.json({
+    nombre_empresa: 'IB SYSTEM S.R.L.',
+    rnc: '1-30-88452-1',
+    producto_crm: 'CRMComercial',
+    puerto: PORT,
+    local_ip: localIp,
+    localhost_url: `http://localhost:${PORT}`,
+    network_url: `http://${localIp}:${PORT}`,
+    motor_db: db.isUsingMySQL() ? 'MySQL 8.0 Conectado' : 'Motor JSON Persistente Activo',
+    version: '2.5.0-Produccion',
+    stats: {
+      usuarios: (data.usuarios || []).length,
+      empresas: (data.empresas || []).length,
+      contactos: (data.contactos || []).length,
+      prospectos: (data.prospectos || []).length,
+      seguimientos: (data.seguimientos || []).length,
+      tareas: (data.tareas || []).length,
+      auditoria: (data.auditoria || []).length
+    }
   });
 });
 

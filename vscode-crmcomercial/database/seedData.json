@@ -155,6 +155,24 @@
       "usuario_id": 1,
       "fecha_registro": "2026-09-15 16:20:00",
       "estado_comercial": "Cliente Activo"
+    },
+    {
+      "id": 6,
+      "razon_social": "Distribuidora Nacional de Electrodomésticos S.R.L.",
+      "nombre_comercial": "Electrodomésticos Gómez & Peña",
+      "rnc": "1-34-55678-9",
+      "direccion": "Av. San Vicente de Paúl #120",
+      "ciudad": "Santo Domingo Este",
+      "provincia": "Santo Domingo",
+      "telefono": "+1 809-598-2233",
+      "correo": "ventas@electrogomezpena.com.do",
+      "sitio_web": "https://electrogomezpena.com.do",
+      "industria": "Distribución y Electrodomésticos",
+      "cantidad_empleados": "50-100",
+      "responsable_comercial": "Yenifer Reina Sena Suero",
+      "usuario_id": 1,
+      "fecha_registro": "2026-09-18 11:00:00",
+      "estado_comercial": "Cliente Activo"
     }
   ],
   "contactos": [
@@ -287,6 +305,32 @@
       "observaciones_comerciales": "Excelente referencia comercial en el sector gastronómico.",
       "etiquetas": "Cliente Activo, POS Digital, Reportes Gerenciales",
       "fecha_registro": "2026-09-15 16:20:00"
+    },
+    {
+      "id": 6,
+      "nombre": "Ing. Carlos",
+      "apellido": "Gómez Peña",
+      "empresa_id": 6,
+      "empresa": "Distribuidora Nacional de Electrodomésticos S.R.L.",
+      "cargo": "Gerente de Distribución y Logística",
+      "telefono": "+1 809-598-2233",
+      "whatsapp": "+1 809-598-2233",
+      "correo": "cgomez@electrogomezpena.com.do",
+      "direccion": "Av. San Vicente de Paúl #120",
+      "ciudad": "Santo Domingo Este",
+      "provincia": "Santo Domingo",
+      "naturaleza_negocio": "Distribución / Electrodomésticos",
+      "estado_comercial": "Cliente Activo",
+      "producto_interes": "POS Digital",
+      "modulo_principal": "Inventario",
+      "responsable_comercial": "Yenifer Reina Sena Suero",
+      "usuario_id": 1,
+      "ultimo_contacto": "2026-09-29 14:00:00",
+      "proximo_seguimiento": "2026-10-06 10:00:00",
+      "notas": "Cliente activo con módulos de inventario y distribución de electrodomésticos.",
+      "observaciones_comerciales": "Empresa líder en distribución mayorista de electrodomésticos para el Cibao y Santo Domingo.",
+      "etiquetas": "Cliente Activo, Distribución, Electrodomésticos, Inventario",
+      "fecha_registro": "2026-09-18 11:00:00"
     }
   ],
   "prospectos": [
