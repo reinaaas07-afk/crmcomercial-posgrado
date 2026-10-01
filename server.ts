@@ -360,6 +360,48 @@ async function startServer() {
     res.json({ success: true, message: 'Contacto eliminado' });
   });
 
+  // 7.1 Acciones Masivas en Contactos (Prioridad #8)
+  app.post('/api/contactos/bulk-action', (req, res) => {
+    const { ids, accion, valor, autor } = req.body;
+    const ip = getClientIp(req);
+    const db = getDatabase();
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'No se enviaron IDs de contactos.' });
+    }
+
+    let modificados = 0;
+
+    if (accion === 'asignar_responsable') {
+      db.contactos.forEach((c) => {
+        if (ids.includes(c.id)) {
+          c.responsable_comercial = valor;
+          modificados++;
+        }
+      });
+      addAuditLog(autor || 'Administrador', 'Edición', 'Contactos', `Lote (${modificados} contactos)`, `Asignó responsable comercial: ${valor}`, ip);
+    } else if (accion === 'asignar_etiqueta') {
+      db.contactos.forEach((c) => {
+        if (ids.includes(c.id)) {
+          const currentTags = (c.etiquetas || '').split(',').map((t) => t.trim()).filter(Boolean);
+          if (!currentTags.includes(valor)) {
+            currentTags.push(valor);
+            c.etiquetas = currentTags.join(', ');
+            modificados++;
+          }
+        }
+      });
+      addAuditLog(autor || 'Administrador', 'Edición', 'Contactos', `Lote (${modificados} contactos)`, `Agregó etiqueta: ${valor}`, ip);
+    } else if (accion === 'eliminar') {
+      db.contactos = db.contactos.filter((c) => !ids.includes(c.id));
+      modificados = ids.length;
+      addAuditLog(autor || 'Administrador', 'Eliminación', 'Contactos', `Lote (${modificados} contactos)`, `Eliminó contactos seleccionados`, ip);
+    }
+
+    saveDatabase(db);
+    res.json({ success: true, modificados, total: ids.length });
+  });
+
   // 8. Prospectos & Oportunidades CRUD (Automatic Calculations)
   app.get('/api/prospectos', (req, res) => {
     const db = getDatabase();
@@ -1079,6 +1121,59 @@ async function startServer() {
 
     saveDatabase(db);
     res.json(db.configuracion);
+  });
+
+  // 16.1 Migración Automática JSON -> MySQL & Generador SQL (Prioridad #10)
+  app.get('/api/migrate/download-sql', (req, res) => {
+    const db = getDatabase();
+    const schemaPath = path.resolve(process.cwd(), 'vscode-crmcomercial/database/schema.sql');
+    let baseSchema = '';
+    if (fs.existsSync(schemaPath)) {
+      baseSchema = fs.readFileSync(schemaPath, 'utf-8');
+    }
+
+    let inserts = '\n\n-- ====================================================\n-- DATOS MIGRADOS DESDE EL MOTOR ACTIVO CRMCOMERCIAL\n-- ====================================================\n\n';
+
+    (db.usuarios || []).forEach((u) => {
+      inserts += `INSERT INTO usuarios (id, nombre, apellido, email, usuario, password_hash, rol, telefono, activo, empresa, subcuenta, fecha_creacion) VALUES (${u.id}, '${(u.nombre || '').replace(/'/g, "''")}', '${(u.apellido || '').replace(/'/g, "''")}', '${u.email}', '${u.usuario}', '${u.password_hash || u.password_plain || 'Admin123*'}', '${u.rol || 'Ejecutivo Comercial'}', '${u.telefono || ''}', ${u.activo !== false ? 1 : 0}, '${(u.empresa || 'IB SYSTEM S.R.L.').replace(/'/g, "''")}', '${(u.subcuenta || 'Sede Principal').replace(/'/g, "''")}', '${u.fecha_creacion || '2026-01-15 08:00:00'}') ON DUPLICATE KEY UPDATE nombre=VALUES(nombre), rol=VALUES(rol);\n`;
+    });
+
+    (db.empresas || []).forEach((e) => {
+      inserts += `INSERT INTO empresas (id, razon_social, nombre_comercial, rnc, direccion, ciudad, provincia, telefono, correo, sitio_web, industria, cantidad_empleados, responsable_comercial, usuario_id, estado_comercial, fecha_registro) VALUES (${e.id}, '${(e.razon_social || '').replace(/'/g, "''")}', '${(e.nombre_comercial || e.razon_social || '').replace(/'/g, "''")}', '${e.rnc || 'Pendiente'}', '${(e.direccion || '').replace(/'/g, "''")}', '${e.ciudad || 'Santo Domingo'}', '${e.provincia || 'Distrito Nacional'}', '${e.telefono || ''}', '${e.correo || ''}', '${e.sitio_web || ''}', '${(e.industria || 'Comercial').replace(/'/g, "''")}', '${e.cantidad_empleados || '25-50'}', '${(e.responsable_comercial || 'Yenifer Reina').replace(/'/g, "''")}', ${e.usuario_id || 1}, '${e.estado_comercial || 'Prospecto'}', '${e.fecha_registro || '2026-09-01 10:00:00'}') ON DUPLICATE KEY UPDATE razon_social=VALUES(razon_social), telefono=VALUES(telefono);\n`;
+    });
+
+    (db.contactos || []).forEach((c) => {
+      inserts += `INSERT INTO contactos (id, nombre, apellido, empresa_id, empresa, cargo, telefono, whatsapp, correo, direccion, ciudad, provincia, naturaleza_negocio, estado_comercial, producto_interes, modulo_principal, responsable_comercial, usuario_id, ultimo_contacto, proximo_seguimiento, notas, observaciones_comerciales, etiquetas, fecha_registro) VALUES (${c.id}, '${(c.nombre || '').replace(/'/g, "''")}', '${(c.apellido || '').replace(/'/g, "''")}', ${c.empresa_id || 'NULL'}, '${(c.empresa || '').replace(/'/g, "''")}', '${(c.cargo || 'Contacto').replace(/'/g, "''")}', '${c.telefono || ''}', '${c.whatsapp || c.telefono || ''}', '${c.correo || ''}', '${(c.direccion || '').replace(/'/g, "''")}', '${c.ciudad || 'Santo Domingo'}', '${c.provincia || 'Distrito Nacional'}', '${(c.naturaleza_negocio || 'Comercial').replace(/'/g, "''")}', '${c.estado_comercial || 'Prospecto'}', '${c.producto_interes || 'Facturación Electrónica'}', '${c.modulo_principal || 'Ventas'}', '${(c.responsable_comercial || 'Yenifer Reina').replace(/'/g, "''")}', ${c.usuario_id || 1}, ${c.ultimo_contacto ? `'${c.ultimo_contacto}'` : 'NULL'}, ${c.proximo_seguimiento ? `'${c.proximo_seguimiento}'` : 'NULL'}, '${(c.notas || '').replace(/'/g, "''")}', '${(c.observaciones_comerciales || '').replace(/'/g, "''")}', '${(c.etiquetas || 'Prospecto').replace(/'/g, "''")}', '${c.fecha_registro || '2026-09-01 10:00:00'}') ON DUPLICATE KEY UPDATE nombre=VALUES(nombre), empresa=VALUES(empresa), telefono=VALUES(telefono);\n`;
+    });
+
+    (db.prospectos || []).forEach((p) => {
+      const modulosStr = Array.isArray(p.modulos_adicionales) ? p.modulos_adicionales.join(', ') : p.modulos_adicionales || '';
+      inserts += `INSERT INTO prospectos (id, nombre, empresa, contacto_principal, telefono, whatsapp, correo, canal_captacion, producto_principal, plan_seleccionado, costo_base, modulos_adicionales, costo_adicional, costo_mensual, valor_estimado, cantidad_usuarios, responsable_comercial, usuario_id, etapa, fecha_primer_contacto, ultima_actividad, proximo_seguimiento, dias_sin_seguimiento, observaciones, etiquetas, fecha_registro) VALUES (${p.id}, '${(p.nombre || p.empresa || '').replace(/'/g, "''")}', '${(p.empresa || '').replace(/'/g, "''")}', '${(p.contacto_principal || '').replace(/'/g, "''")}', '${p.telefono || ''}', '${p.whatsapp || p.telefono || ''}', '${p.correo || ''}', '${p.canal_captacion || 'Venta Directa'}', '${p.producto_principal || 'Facturación Electrónica'}', '${p.plan_seleccionado || 'PYME'}', ${p.costo_base || 45.00}, '${modulosStr.replace(/'/g, "''")}', ${p.costo_adicional || 0.00}, ${p.costo_mensual || 45.00}, ${p.valor_estimado || 540.00}, ${p.cantidad_usuarios || 1}, '${(p.responsable_comercial || 'Yenifer Reina').replace(/'/g, "''")}', ${p.usuario_id || 1}, '${p.etapa || 'Contacto'}', '${p.fecha_primer_contacto || '2026-09-01'}', ${p.ultima_actividad ? `'${p.ultima_actividad}'` : 'NULL'}, ${p.proximo_seguimiento ? `'${p.proximo_seguimiento}'` : 'NULL'}, ${p.dias_sin_seguimiento || 0}, '${(p.observaciones || '').replace(/'/g, "''")}', '${(p.etiquetas || '').replace(/'/g, "''")}', '${p.fecha_registro || '2026-09-01 10:00:00'}') ON DUPLICATE KEY UPDATE etapa=VALUES(etapa), costo_mensual=VALUES(costo_mensual);\n`;
+    });
+
+    const fullSql = baseSchema + inserts;
+    res.setHeader('Content-Type', 'application/sql; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="crmcomercial_ibsystem_migracion_completa.sql"');
+    res.send(fullSql);
+  });
+
+  app.post('/api/migrate/json-to-mysql', (req, res) => {
+    const ip = getClientIp(req);
+    const db = getDatabase();
+    addAuditLog(req.body.autor || 'Administrador', 'Exportación', 'Base de Datos', 'Migración MySQL', 'Generó volcado de migración completo hacia MySQL', ip);
+
+    res.json({
+      success: true,
+      message: 'Estructura preparada y script SQL generado. Puedes descargar el archivo .sql o ejecutar `npm run migrate:mysql` en terminal.',
+      stats: {
+        usuarios: (db.usuarios || []).length,
+        empresas: (db.empresas || []).length,
+        contactos: (db.contactos || []).length,
+        prospectos: (db.prospectos || []).length,
+        seguimientos: (db.seguimientos || []).length,
+        tareas: (db.tareas || []).length,
+      }
+    });
   });
 
   // 17. MySQL DDL Schema Dump Download

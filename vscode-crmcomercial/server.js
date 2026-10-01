@@ -252,12 +252,27 @@ app.post('/api/contactos', (req, res) => {
   const data = db.getLocalData();
   const ip = getClientIp(req);
 
+  let empresaId = req.body.empresa_id ? Number(req.body.empresa_id) : null;
+  let empresaNombre = (req.body.empresa || '').trim();
+
+  // Si tenemos empresaId pero no nombre, resolver de empresas
+  if (empresaId && !empresaNombre) {
+    const comp = data.empresas.find((e) => e.id === empresaId);
+    if (comp) empresaNombre = comp.razon_social;
+  }
+  // Si tenemos nombre de empresa pero no empresaId, resolver o crear enlace
+  if (!empresaId && empresaNombre) {
+    const comp = data.empresas.find((e) => e.razon_social.toLowerCase() === empresaNombre.toLowerCase());
+    if (comp) empresaId = comp.id;
+  }
+
   const nuevo = {
     id: Date.now(),
     nombre: req.body.nombre,
     apellido: req.body.apellido || '',
-    empresa: req.body.empresa || 'Empresa Dominicana',
-    cargo: req.body.cargo || 'Contacto',
+    empresa_id: empresaId,
+    empresa: empresaNombre || 'Empresa Dominicana',
+    cargo: req.body.cargo || 'Contacto Comercial',
     telefono: req.body.telefono || '',
     whatsapp: req.body.whatsapp || req.body.telefono || '',
     correo: req.body.correo || '',
@@ -265,17 +280,21 @@ app.post('/api/contactos', (req, res) => {
     ciudad: req.body.ciudad || 'Santo Domingo',
     provincia: req.body.provincia || 'Distrito Nacional',
     naturaleza_negocio: req.body.naturaleza_negocio || 'Comercial',
+    estado_comercial: req.body.estado_comercial || 'Prospecto',
+    producto_interes: req.body.producto_interes || 'Facturación Electrónica',
+    modulo_principal: req.body.modulo_principal || 'Ventas',
     responsable_comercial: req.body.responsable_comercial || 'Yenifer Reina Sena Suero',
     usuario_id: req.body.usuario_id || 1,
     ultimo_contacto: new Date().toISOString().replace('T', ' ').slice(0, 19),
     proximo_seguimiento: req.body.proximo_seguimiento || '',
     notas: req.body.notas || '',
-    etiquetas: req.body.etiquetas || 'Contacto',
+    observaciones_comerciales: req.body.observaciones_comerciales || '',
+    etiquetas: req.body.etiquetas || 'Prospecto',
     fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19)
   };
 
   data.contactos.unshift(nuevo);
-  logAudit(req.body.autor || 'Administrador', 'Creación', 'Contactos', `${nuevo.nombre} ${nuevo.apellido}`, `Contacto registrado en ${nuevo.empresa}`, ip);
+  logAudit(req.body.autor || 'Administrador', 'Creación', 'Contactos', `${nuevo.nombre} ${nuevo.apellido}`, `Contacto registrado en ${nuevo.empresa} (Empresa ID: ${empresaId || 'N/A'})`, ip);
   createNotification('Nuevo Contacto Creado', `${nuevo.nombre} ${nuevo.apellido} registrado en ${nuevo.empresa}.`, req.body.autor || 'Sistema', 'contacto_actualizado');
   db.saveLocalData(data);
 
@@ -310,6 +329,56 @@ app.delete('/api/contactos/:id', (req, res) => {
   db.saveLocalData(data);
 
   res.json({ success: true });
+});
+
+// 7.1 Acciones Masivas en Contactos (Prioridad #8)
+app.post('/api/contactos/bulk-action', (req, res) => {
+  const { ids, accion, valor, autor } = req.body;
+  const ip = getClientIp(req);
+  const data = db.getLocalData();
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'No se enviaron IDs de contactos.' });
+  }
+
+  let modificados = 0;
+
+  if (accion === 'asignar_responsable') {
+    data.contactos.forEach((c) => {
+      if (ids.includes(c.id)) {
+        c.responsable_comercial = valor;
+        modificados++;
+      }
+    });
+    logAudit(autor || 'Administrador', 'Edición', 'Contactos', `Lote (${modificados} contactos)`, `Asignó responsable comercial: ${valor}`, ip);
+  } else if (accion === 'asignar_etiqueta') {
+    data.contactos.forEach((c) => {
+      if (ids.includes(c.id)) {
+        const currentTags = (c.etiquetas || '').split(',').map((t) => t.trim()).filter(Boolean);
+        if (!currentTags.includes(valor)) {
+          currentTags.push(valor);
+          c.etiquetas = currentTags.join(', ');
+          modificados++;
+        }
+      }
+    });
+    logAudit(autor || 'Administrador', 'Edición', 'Contactos', `Lote (${modificados} contactos)`, `Agregó etiqueta: ${valor}`, ip);
+  } else if (accion === 'cambiar_estado') {
+    data.contactos.forEach((c) => {
+      if (ids.includes(c.id)) {
+        c.estado_comercial = valor;
+        modificados++;
+      }
+    });
+    logAudit(autor || 'Administrador', 'Edición', 'Contactos', `Lote (${modificados} contactos)`, `Cambió estado comercial a: ${valor}`, ip);
+  } else if (accion === 'eliminar') {
+    data.contactos = data.contactos.filter((c) => !ids.includes(c.id));
+    modificados = ids.length;
+    logAudit(autor || 'Administrador', 'Eliminación', 'Contactos', `Lote (${modificados} contactos)`, `Eliminación masiva de contactos`, ip);
+  }
+
+  db.saveLocalData(data);
+  res.json({ success: true, modificados, total: ids.length });
 });
 
 // 8. CRUD: Pipeline / Prospectos
@@ -628,10 +697,13 @@ app.post('/api/importar', (req, res) => {
       creados++;
     }
 
-    // Auto-crear Empresa si no existe
-    if (empresa && !data.empresas.some((e) => e.razon_social.toLowerCase() === empresa.toLowerCase())) {
-      data.empresas.unshift({
-        id: Date.now() + 5000 + i,
+    // 2. Auto-crear o actualizar Empresa vinculada
+    let compId = null;
+    let compObj = data.empresas.find((e) => e.razon_social.toLowerCase() === empresa.toLowerCase());
+    if (!compObj && empresa) {
+      compId = Date.now() + 5000 + i;
+      compObj = {
+        id: compId,
         razon_social: empresa,
         nombre_comercial: empresa,
         rnc: 'Pendiente',
@@ -645,30 +717,59 @@ app.post('/api/importar', (req, res) => {
         responsable_comercial: autor || 'Yenifer Reina Sena Suero',
         usuario_id: 1,
         fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19),
-        estado_comercial: 'Prospecto'
-      });
+        estado_comercial: ['Cliente Activo', 'Ganado'].includes(estado) ? 'Cliente Activo' : 'Prospecto'
+      };
+      data.empresas.unshift(compObj);
+    } else if (compObj) {
+      compId = compObj.id;
+      if (telefono && !compObj.telefono) compObj.telefono = telefono;
+      if (correo && !compObj.correo) compObj.correo = correo;
     }
 
-    // Auto-crear Contacto si no existe
-    if (contacto && !data.contactos.some((c) => c.nombre.toLowerCase() === contacto.toLowerCase())) {
-      data.contactos.unshift({
-        id: Date.now() + 10000 + i,
-        nombre: contacto.split(' ')[0] || contacto,
-        apellido: contacto.split(' ').slice(1).join(' ') || '',
-        empresa: empresa || 'Empresa Comercial',
-        cargo: 'Decisor Comercial',
-        telefono,
-        whatsapp: telefono,
-        correo,
-        direccion: 'Distrito Nacional',
-        ciudad: 'Santo Domingo',
-        provincia: 'Distrito Nacional',
-        naturaleza_negocio: naturaleza,
-        responsable_comercial: autor || 'Yenifer Reina Sena Suero',
-        usuario_id: 1,
-        ultimo_contacto: new Date().toISOString().replace('T', ' ').slice(0, 19),
-        fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19)
-      });
+    // 3. Auto-crear o vincular Contacto
+    if (contacto) {
+      const cleanTel = telefono.replace(/[^0-9]/g, '');
+      const existContact = data.contactos.find((c) =>
+        (correo && c.correo && c.correo.toLowerCase() === correo) ||
+        (cleanTel && c.telefono && c.telefono.replace(/[^0-9]/g, '') === cleanTel) ||
+        (c.nombre.toLowerCase() === contacto.toLowerCase() && c.empresa.toLowerCase() === empresa.toLowerCase())
+      );
+
+      if (existContact) {
+        existContact.empresa_id = compId || existContact.empresa_id;
+        existContact.empresa = empresa || existContact.empresa;
+        if (telefono) existContact.telefono = telefono;
+        if (telefono) existContact.whatsapp = telefono;
+        if (correo) existContact.correo = correo;
+        existContact.ultimo_contacto = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      } else {
+        data.contactos.unshift({
+          id: Date.now() + 10000 + i,
+          nombre: contacto.split(' ')[0] || contacto,
+          apellido: contacto.split(' ').slice(1).join(' ') || '',
+          empresa_id: compId,
+          empresa: empresa || 'Empresa Comercial',
+          cargo: 'Decisor Comercial',
+          telefono,
+          whatsapp: telefono,
+          correo,
+          direccion: 'Distrito Nacional',
+          ciudad: 'Santo Domingo',
+          provincia: 'Distrito Nacional',
+          naturaleza_negocio: naturaleza,
+          estado_comercial: ['Ganado', 'Cliente Activo'].includes(estado) ? 'Cliente Activo' : 'Prospecto',
+          producto_interes: posDigital.toLowerCase().includes('s') ? 'POS Digital' : 'Facturación Electrónica',
+          modulo_principal: modulos[0] || 'Ventas',
+          responsable_comercial: autor || 'Yenifer Reina Sena Suero',
+          usuario_id: 1,
+          ultimo_contacto: new Date().toISOString().replace('T', ' ').slice(0, 19),
+          proximo_seguimiento: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0] + ' 10:00:00',
+          notas: `Registrado automáticamente desde importación masiva IB SYSTEM.`,
+          observaciones_comerciales: `Naturaleza: ${naturaleza} | POS: ${posDigital} | Certificado FE: ${certificadoFE}`,
+          etiquetas: 'Prospecto, IB SYSTEM',
+          fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19)
+        });
+      }
     }
   });
 
@@ -693,19 +794,106 @@ app.post('/api/importar', (req, res) => {
   res.json({ success: true, creados, actualizados, total: filas.length });
 });
 
+// 15. Migración Automática JSON -> MySQL & Generador SQL (Prioridad #10)
+app.get('/api/migrate/download-sql', (req, res) => {
+  const data = db.getLocalData();
+  const schemaPath = path.resolve(__dirname, 'database', 'schema.sql');
+  let baseSchema = '';
+  if (fs.existsSync(schemaPath)) {
+    baseSchema = fs.readFileSync(schemaPath, 'utf-8');
+  }
+
+  let inserts = '\n\n-- ====================================================\n-- DATOS MIGRADOS DESDE EL MOTOR ACTIVO CRMCOMERCIAL\n-- ====================================================\n\n';
+
+  // Usuarios
+  (data.usuarios || []).forEach((u) => {
+    inserts += `INSERT INTO usuarios (id, nombre, apellido, email, usuario, password_hash, rol, telefono, activo, empresa, subcuenta, fecha_creacion) VALUES (${u.id}, '${(u.nombre || '').replace(/'/g, "''")}', '${(u.apellido || '').replace(/'/g, "''")}', '${u.email}', '${u.usuario}', '${u.password_hash || u.password_plain || 'Admin123*'}', '${u.rol || 'Ejecutivo Comercial'}', '${u.telefono || ''}', ${u.activo !== false ? 1 : 0}, '${(u.empresa || 'IB SYSTEM S.R.L.').replace(/'/g, "''")}', '${(u.subcuenta || 'Sede Principal').replace(/'/g, "''")}', '${u.fecha_creacion || '2026-01-15 08:00:00'}') ON DUPLICATE KEY UPDATE nombre=VALUES(nombre), rol=VALUES(rol);\n`;
+  });
+
+  // Empresas
+  (data.empresas || []).forEach((e) => {
+    inserts += `INSERT INTO empresas (id, razon_social, nombre_comercial, rnc, direccion, ciudad, provincia, telefono, correo, sitio_web, industria, cantidad_empleados, responsable_comercial, usuario_id, estado_comercial, fecha_registro) VALUES (${e.id}, '${(e.razon_social || '').replace(/'/g, "''")}', '${(e.nombre_comercial || e.razon_social || '').replace(/'/g, "''")}', '${e.rnc || 'Pendiente'}', '${(e.direccion || '').replace(/'/g, "''")}', '${e.ciudad || 'Santo Domingo'}', '${e.provincia || 'Distrito Nacional'}', '${e.telefono || ''}', '${e.correo || ''}', '${e.sitio_web || ''}', '${(e.industria || 'Comercial').replace(/'/g, "''")}', '${e.cantidad_empleados || '25-50'}', '${(e.responsable_comercial || 'Yenifer Reina').replace(/'/g, "''")}', ${e.usuario_id || 1}, '${e.estado_comercial || 'Prospecto'}', '${e.fecha_registro || '2026-09-01 10:00:00'}') ON DUPLICATE KEY UPDATE razon_social=VALUES(razon_social), telefono=VALUES(telefono);\n`;
+  });
+
+  // Contactos
+  (data.contactos || []).forEach((c) => {
+    inserts += `INSERT INTO contactos (id, nombre, apellido, empresa_id, empresa, cargo, telefono, whatsapp, correo, direccion, ciudad, provincia, naturaleza_negocio, estado_comercial, producto_interes, modulo_principal, responsable_comercial, usuario_id, ultimo_contacto, proximo_seguimiento, notas, observaciones_comerciales, etiquetas, fecha_registro) VALUES (${c.id}, '${(c.nombre || '').replace(/'/g, "''")}', '${(c.apellido || '').replace(/'/g, "''")}', ${c.empresa_id || 'NULL'}, '${(c.empresa || '').replace(/'/g, "''")}', '${(c.cargo || 'Contacto').replace(/'/g, "''")}', '${c.telefono || ''}', '${c.whatsapp || c.telefono || ''}', '${c.correo || ''}', '${(c.direccion || '').replace(/'/g, "''")}', '${c.ciudad || 'Santo Domingo'}', '${c.provincia || 'Distrito Nacional'}', '${(c.naturaleza_negocio || 'Comercial').replace(/'/g, "''")}', '${c.estado_comercial || 'Prospecto'}', '${c.producto_interes || 'Facturación Electrónica'}', '${c.modulo_principal || 'Ventas'}', '${(c.responsable_comercial || 'Yenifer Reina').replace(/'/g, "''")}', ${c.usuario_id || 1}, ${c.ultimo_contacto ? `'${c.ultimo_contacto}'` : 'NULL'}, ${c.proximo_seguimiento ? `'${c.proximo_seguimiento}'` : 'NULL'}, '${(c.notas || '').replace(/'/g, "''")}', '${(c.observaciones_comerciales || '').replace(/'/g, "''")}', '${(c.etiquetas || 'Prospecto').replace(/'/g, "''")}', '${c.fecha_registro || '2026-09-01 10:00:00'}') ON DUPLICATE KEY UPDATE nombre=VALUES(nombre), empresa=VALUES(empresa), telefono=VALUES(telefono);\n`;
+  });
+
+  // Prospectos
+  (data.prospectos || []).forEach((p) => {
+    const modulosStr = Array.isArray(p.modulos_adicionales) ? p.modulos_adicionales.join(', ') : p.modulos_adicionales || '';
+    inserts += `INSERT INTO prospectos (id, nombre, empresa, contacto_principal, telefono, whatsapp, correo, canal_captacion, producto_principal, plan_seleccionado, costo_base, modulos_adicionales, costo_adicional, costo_mensual, valor_estimado, cantidad_usuarios, responsable_comercial, usuario_id, etapa, fecha_primer_contacto, ultima_actividad, proximo_seguimiento, dias_sin_seguimiento, observaciones, etiquetas, fecha_registro) VALUES (${p.id}, '${(p.nombre || p.empresa || '').replace(/'/g, "''")}', '${(p.empresa || '').replace(/'/g, "''")}', '${(p.contacto_principal || '').replace(/'/g, "''")}', '${p.telefono || ''}', '${p.whatsapp || p.telefono || ''}', '${p.correo || ''}', '${p.canal_captacion || 'Venta Directa'}', '${p.producto_principal || 'Facturación Electrónica'}', '${p.plan_seleccionado || 'PYME'}', ${p.costo_base || 45.00}, '${modulosStr.replace(/'/g, "''")}', ${p.costo_adicional || 0.00}, ${p.costo_mensual || 45.00}, ${p.valor_estimado || 540.00}, ${p.cantidad_usuarios || 1}, '${(p.responsable_comercial || 'Yenifer Reina').replace(/'/g, "''")}', ${p.usuario_id || 1}, '${p.etapa || 'Contacto'}', '${p.fecha_primer_contacto || '2026-09-01'}', ${p.ultima_actividad ? `'${p.ultima_actividad}'` : 'NULL'}, ${p.proximo_seguimiento ? `'${p.proximo_seguimiento}'` : 'NULL'}, ${p.dias_sin_seguimiento || 0}, '${(p.observaciones || '').replace(/'/g, "''")}', '${(p.etiquetas || '').replace(/'/g, "''")}', '${p.fecha_registro || '2026-09-01 10:00:00'}') ON DUPLICATE KEY UPDATE etapa=VALUES(etapa), costo_mensual=VALUES(costo_mensual);\n`;
+  });
+
+  const fullSql = baseSchema + inserts;
+  res.setHeader('Content-Type', 'application/sql; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="crmcomercial_ibsystem_migracion_completa.sql"');
+  res.send(fullSql);
+});
+
+app.post('/api/migrate/json-to-mysql', async (req, res) => {
+  const ip = getClientIp(req);
+  try {
+    // Si MySQL está activo, ejecutar
+    if (db.isUsingMySQL()) {
+      return res.json({
+        success: true,
+        message: 'MySQL ya se encuentra activo y sincronizado en tiempo real.',
+        engine: 'MySQL 8.0'
+      });
+    }
+
+    // Si no está conectado directamente, ejecutar script de migración local si es posible
+    const data = db.getLocalData();
+    logAudit(req.body.autor || 'Administrador', 'Exportación', 'Base de Datos', 'Migración MySQL', 'Generó volcado de migración completo hacia MySQL', ip);
+
+    res.json({
+      success: true,
+      message: 'Estructura preparada y script SQL generado. Puedes descargar el archivo .sql o ejecutar `npm run migrate:mysql` en terminal.',
+      stats: {
+        usuarios: (data.usuarios || []).length,
+        empresas: (data.empresas || []).length,
+        contactos: (data.contactos || []).length,
+        prospectos: (data.prospectos || []).length,
+        seguimientos: (data.seguimientos || []).length,
+        tareas: (data.tareas || []).length,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Ruta comodín para SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Iniciar servidor
+// Iniciar servidor configurado para red local (Prioridad #13: 0.0.0.0)
 db.initDatabase().then(() => {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    const os = require('os');
+    const interfaces = os.networkInterfaces();
+    let localIp = '127.0.0.1';
+
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name]) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          localIp = iface.address;
+          break;
+        }
+      }
+    }
+
     console.log(`================================================================`);
     console.log(` CRMComercial - IB SYSTEM S.R.L. (Proyecto de Posgrado)`);
-    console.log(` Servidor Express activo en: http://localhost:${PORT}`);
-    console.log(` Base de Datos: ${db.isUsingMySQL() ? 'MySQL 8.0 Conectado' : 'Motor JSON Persistente Activo'}`);
-    console.log(` Frontend: HTML5, CSS3, JavaScript Puro (Vanilla)`);
+    console.log(` Servidor Express activo en red local:`);
+    console.log(` 💻 Localhost:      http://localhost:${PORT}`);
+    console.log(` 📱 Red Local (IP): http://${localIp}:${PORT} (celulares / tablets)`);
+    console.log(` Base de Datos:     ${db.isUsingMySQL() ? 'MySQL 8.0 Conectado' : 'Motor JSON Persistente Activo'}`);
+    console.log(` Frontend:          HTML5, CSS3, JavaScript Puro (Vanilla)`);
+    console.log(` Migración MySQL:   npm run migrate:mysql | GET /api/migrate/download-sql`);
     console.log(`================================================================`);
   });
 });

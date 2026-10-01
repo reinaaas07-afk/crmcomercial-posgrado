@@ -51,18 +51,6 @@
           <span>Ingresar a la Plataforma</span>
         </button>
       </form>
-
-      <div class="login-footer">
-        <div class="credential-hint">
-          <strong>Usuarios preconfigurados (Demo):</strong>
-          <ul>
-            <li><strong>Admin:</strong> yenifer.sena &bull; <code>Admin123*</code></li>
-            <li><strong>Ejecutivo:</strong> felix.robles &bull; <code>Felix2026*</code></li>
-            <li><strong>Supervisor:</strong> armando.montes &bull; <code>Armando2026*</code></li>
-            <li><strong>Analista:</strong> ana.alcantara &bull; <code>Ana2026*</code></li>
-          </ul>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -253,26 +241,108 @@
         <section id="viewContactos" class="module-view">
           <div class="view-header">
             <div>
-              <h2>Directorio de Contactos</h2>
-              <p class="text-muted">Decisores comerciales, cargos, WhatsApp directo y trazabilidad.</p>
+              <h2>Directorio de Contactos Comerciales</h2>
+              <p class="text-muted">Gestión integral de decisores, empresas asociadas, seguimiento comercial y acciones masivas.</p>
             </div>
-            <button class="btn btn-primary" onclick="openModal('modalContacto')">+ Nuevo Contacto</button>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline" onclick="openModal('modalImportacionRapida')">&#8681; Importar</button>
+              <button class="btn btn-primary" onclick="openModal('modalContacto')">+ Nuevo Contacto</button>
+            </div>
+          </div>
+
+          <!-- BARRA DE ACCIONES MASIVAS (Prioridad #8) -->
+          <div id="massActionsBar" class="mass-actions-bar hidden">
+            <div class="mass-actions-info">
+              <span class="mass-count-badge" id="selectedCountBadge">0</span>
+              <span id="selectedCountText">contactos seleccionados</span>
+            </div>
+            <div class="mass-actions-buttons">
+              <button class="btn btn-sm btn-outline-light" onclick="openModalCorreoMasivo()">&#9993; Correo Masivo</button>
+              <button class="btn btn-sm btn-outline-success" onclick="openModalWhatsappMasivo()">&#128172; WhatsApp Masivo</button>
+              <button class="btn btn-sm btn-outline-light" onclick="exportSelectedContactos('xlsx')">&#128190; Exportar Excel</button>
+              <button class="btn btn-sm btn-outline-light" onclick="exportSelectedContactos('csv')">&#128196; Exportar CSV</button>
+              <button class="btn btn-sm btn-outline-light" onclick="openModalAsignarResponsableMasivo()">&#128100; Asignar Responsable</button>
+              <button class="btn btn-sm btn-outline-light" onclick="openModalAsignarEtiquetaMasivo()">&#127991; Asignar Etiqueta</button>
+              <button class="btn btn-sm btn-text-danger" onclick="deseleccionarTodosContactos()">&#10005; Deseleccionar</button>
+            </div>
+          </div>
+
+          <!-- PANEL DE FILTROS AVANZADOS (Prioridad #7) -->
+          <div class="advanced-filter-panel">
+            <div class="filter-panel-title">
+              <span>&#128269; Filtros Avanzados</span>
+              <button type="button" class="btn-link-sm" onclick="resetFiltrosContactos()">Limpiar Filtros</button>
+            </div>
+            <div class="filter-controls-grid">
+              <div class="filter-group">
+                <label>Búsqueda General</label>
+                <input type="text" id="filterContactos" placeholder="Nombre, apellido, cargo..." class="filter-input" oninput="renderContactosTable()">
+              </div>
+              <div class="filter-group">
+                <label>Empresa Asociada</label>
+                <select id="filtroContactoEmpresa" class="filter-select" onchange="renderContactosTable()">
+                  <option value="">Todas las empresas</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Estado Comercial</label>
+                <select id="filtroContactoEstado" class="filter-select" onchange="renderContactosTable()">
+                  <option value="">Todos los estados</option>
+                  <option value="Lead">Lead</option>
+                  <option value="Prospecto">Prospecto</option>
+                  <option value="Cliente">Cliente</option>
+                  <option value="Cliente Activo">Cliente Activo</option>
+                  <option value="Cliente Inactivo">Cliente Inactivo</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Producto de Interés</label>
+                <select id="filtroContactoProducto" class="filter-select" onchange="renderContactosTable()">
+                  <option value="">Todos los productos</option>
+                  <option value="ITHOT System">ITHOT System</option>
+                  <option value="POS Digital">POS Digital</option>
+                  <option value="Facturación Electrónica">Facturación Electrónica</option>
+                  <option value="CRMComercial">CRMComercial</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Responsable</label>
+                <select id="filtroContactoResponsable" class="filter-select" onchange="renderContactosTable()">
+                  <option value="">Todos los ejecutivos</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Etiqueta</label>
+                <select id="filtroContactoEtiqueta" class="filter-select" onchange="renderContactosTable()">
+                  <option value="">Todas las etiquetas</option>
+                  <option value="Lead">Lead</option>
+                  <option value="Prospecto">Prospecto</option>
+                  <option value="Cliente Activo">Cliente Activo</option>
+                  <option value="POS Digital">POS Digital</option>
+                  <option value="Facturación Electrónica">Facturación Electrónica</option>
+                  <option value="Inventario">Inventario</option>
+                  <option value="Ventas">Ventas</option>
+                  <option value="Contabilidad">Contabilidad</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div class="table-card">
-            <div class="table-controls">
-              <input type="text" id="filterContactos" placeholder="Filtrar por nombre, empresa o cargo..." class="search-input">
-            </div>
             <div class="table-responsive">
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Nombre Completo</th>
-                    <th>Empresa</th>
+                    <th style="width: 40px; text-align: center;">
+                      <input type="checkbox" id="selectAllContactos" title="Seleccionar todos los contactos" onchange="toggleSelectAllContactos(this)">
+                    </th>
+                    <th>Contacto</th>
+                    <th>Empresa Asociada</th>
                     <th>Cargo</th>
-                    <th>Contacto Directo</th>
+                    <th>Teléfono / WhatsApp</th>
+                    <th>Estado Comercial</th>
+                    <th>Producto / Módulo</th>
                     <th>Responsable</th>
-                    <th>Último Contacto</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
@@ -800,9 +870,9 @@
     </div>
   </div>
 
-  <!-- MODAL: NUEVO CONTACTO -->
+  <!-- MODAL: NUEVO CONTACTO (Prioridad #2 y #3: Restauración completa de campos y Empresa Asociada) -->
   <div id="modalContacto" class="modal-backdrop hidden">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <div class="modal-header">
         <h3 id="modalContactoTitle">Registrar Contacto</h3>
         <button class="btn-close" onclick="closeModal('modalContacto')">&times;</button>
@@ -810,49 +880,147 @@
       <form id="formContacto">
         <input type="hidden" id="contactoId">
         <div class="modal-body">
+          <div class="form-section-title">&#128100; Datos Básicos</div>
           <div class="form-row">
             <div class="form-group">
               <label>Nombre *</label>
               <input type="text" id="contactoNombre" required placeholder="ej. Carlos">
             </div>
             <div class="form-group">
-              <label>Apellido</label>
-              <input type="text" id="contactoApellido" placeholder="ej. Méndez">
+              <label>Apellido(s)</label>
+              <input type="text" id="contactoApellido" placeholder="ej. Méndez Gómez">
             </div>
           </div>
+
           <div class="form-row">
             <div class="form-group">
-              <label>Empresa *</label>
-              <input type="text" id="contactoEmpresa" required placeholder="Nombre de la empresa">
+              <label>Empresa Asociada * (Lista de Empresas)</label>
+              <select id="contactoEmpresaSelect" required>
+                <option value="">-- Seleccionar Empresa Existente --</option>
+              </select>
             </div>
             <div class="form-group">
-              <label>Cargo</label>
-              <input type="text" id="contactoCargo" placeholder="ej. Gerente de Compras">
+              <label>Cargo / Puesto</label>
+              <input type="text" id="contactoCargo" placeholder="ej. Gerente de Operaciones">
             </div>
           </div>
+
           <div class="form-row">
             <div class="form-group">
-              <label>Teléfono</label>
+              <label>Teléfono Directo</label>
               <input type="text" id="contactoTelefono" placeholder="+1 809-000-0000">
             </div>
             <div class="form-group">
               <label>WhatsApp</label>
-              <input type="text" id="contactoWhatsapp" placeholder="+1 809-000-0000">
+              <input type="text" id="contactoWhatsapp" placeholder="+1 829-000-0000">
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Correo Electrónico</label>
               <input type="email" id="contactoCorreo" placeholder="cmendez@empresa.com.do">
             </div>
+          </div>
+
+          <div class="form-section-title" style="margin-top:14px;">&#128188; Información Comercial & Responsable</div>
+          <div class="form-row">
             <div class="form-group">
-              <label>Responsable</label>
+              <label>Naturaleza del Negocio</label>
+              <select id="contactoNaturaleza">
+                <option value="Comercio Mayorista / Distribución">Comercio Mayorista / Distribución</option>
+                <option value="Supermercados / Gran Superficie Retail">Supermercados / Retail</option>
+                <option value="Ferretería & Construcción">Ferretería & Construcción</option>
+                <option value="Restaurantes & Gastronomía">Restaurantes & Gastronomía</option>
+                <option value="Farmacias & Salud">Farmacias & Salud</option>
+                <option value="Repuestos Automotrices & Talleres">Repuestos Automotrices & Talleres</option>
+                <option value="Industria & Manufactura">Industria & Manufactura</option>
+                <option value="Servicios Profesionales">Servicios Profesionales</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Estado Comercial</label>
+              <select id="contactoEstadoComercial">
+                <option value="Lead">Lead</option>
+                <option value="Prospecto" selected>Prospecto</option>
+                <option value="Cliente">Cliente</option>
+                <option value="Cliente Activo">Cliente Activo</option>
+                <option value="Cliente Inactivo">Cliente Inactivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Producto de Interés Principal</label>
+              <select id="contactoProductoInteres">
+                <option value="ITHOT System">ITHOT System</option>
+                <option value="POS Digital">POS Digital</option>
+                <option value="Facturación Electrónica" selected>Facturación Electrónica</option>
+                <option value="CRMComercial">CRMComercial</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Módulo Principal</label>
+              <select id="contactoModuloPrincipal">
+                <option value="Inventario">Inventario</option>
+                <option value="Compras">Compras</option>
+                <option value="Ventas" selected>Ventas</option>
+                <option value="Caja">Caja</option>
+                <option value="Contabilidad">Contabilidad</option>
+                <option value="Cuentas por Cobrar">Cuentas por Cobrar</option>
+                <option value="Cuentas por Pagar">Cuentas por Pagar</option>
+                <option value="Reportes Gerenciales">Reportes Gerenciales</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Responsable Comercial</label>
               <select id="contactoResponsable"></select>
             </div>
           </div>
-          <div class="form-group">
-            <label>Notas Iniciales</label>
-            <textarea id="contactoNotas" rows="2" placeholder="Observaciones o contexto del contacto..."></textarea>
+
+          <div class="form-section-title" style="margin-top:14px;">&#128205; Ubicación & Seguimiento</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ciudad</label>
+              <input type="text" id="contactoCiudad" value="Santo Domingo">
+            </div>
+            <div class="form-group">
+              <label>Provincia</label>
+              <input type="text" id="contactoProvincia" value="Distrito Nacional">
+            </div>
+            <div class="form-group">
+              <label>Dirección Física</label>
+              <input type="text" id="contactoDireccion" placeholder="Calle, número, sector...">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha Próximo Seguimiento</label>
+              <input type="date" id="contactoProximoSeguimiento">
+            </div>
+            <div class="form-group">
+              <label>Etiquetas / Tags (Separar por comas)</label>
+              <input type="text" id="contactoEtiquetas" placeholder="ej. Prospecto, Facturación Electrónica, Ventas">
+              <div class="tag-quick-pills">
+                <span class="tag-pill" onclick="appendTagToInput('Lead')">+ Lead</span>
+                <span class="tag-pill" onclick="appendTagToInput('Prospecto')">+ Prospecto</span>
+                <span class="tag-pill" onclick="appendTagToInput('Cliente Activo')">+ Cliente Activo</span>
+                <span class="tag-pill" onclick="appendTagToInput('POS Digital')">+ POS Digital</span>
+                <span class="tag-pill" onclick="appendTagToInput('Facturación Electrónica')">+ Fact. Electrónica</span>
+                <span class="tag-pill" onclick="appendTagToInput('Inventario')">+ Inventario</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section-title" style="margin-top:14px;">&#128221; Observaciones & Notas</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Observaciones Comerciales</label>
+              <textarea id="contactoObservacionesComerciales" rows="2" placeholder="Detalles de interés, requerimientos específicos o historial..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Notas Internas</label>
+              <textarea id="contactoNotas" rows="2" placeholder="Notas de uso interno para el equipo comercial..."></textarea>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -863,7 +1031,7 @@
     </div>
   </div>
 
-  <!-- MODAL: NUEVA OPORTUNIDAD / PROSPECTO -->
+  <!-- MODAL: NUEVA OPORTUNIDAD / PROSPECTO (Prioridad #5: Selección de Empresa y Auto-completado) -->
   <div id="modalProspecto" class="modal-backdrop hidden">
     <div class="modal-dialog modal-lg">
       <div class="modal-header">
@@ -873,29 +1041,43 @@
       <form id="formProspecto">
         <input type="hidden" id="prospectoId">
         <div class="modal-body">
+          <div class="alert info" style="font-size:12px; margin-bottom:12px;">
+            &#128161; <strong>Selección Automática:</strong> Al seleccionar una Empresa, se cargarán sus contactos asociados y los datos de teléfono, WhatsApp y correo se completarán automáticamente.
+          </div>
+
           <div class="form-row">
             <div class="form-group">
-              <label>Empresa / Prospecto *</label>
-              <input type="text" id="prosEmpresa" required placeholder="ej. Supermercado Quisqueya">
+              <label>Empresa Asociada *</label>
+              <select id="prosEmpresaSelect" required onchange="handleProsEmpresaChange()">
+                <option value="">-- Seleccionar Empresa Existente --</option>
+              </select>
             </div>
             <div class="form-group">
-              <label>Contacto Principal</label>
-              <input type="text" id="prosContacto" placeholder="Nombre de decisor">
+              <label>Contacto Principal *</label>
+              <select id="prosContactoSelect" required onchange="handleProsContactoChange()">
+                <option value="">-- Primero selecciona una empresa --</option>
+              </select>
             </div>
           </div>
+
           <div class="form-row">
             <div class="form-group">
-              <label>Teléfono</label>
+              <label>Teléfono Directo</label>
               <input type="text" id="prosTelefono" placeholder="+1 809-000-0000">
             </div>
             <div class="form-group">
-              <label>Correo</label>
+              <label>WhatsApp</label>
+              <input type="text" id="prosWhatsapp" placeholder="+1 809-000-0000">
+            </div>
+            <div class="form-group">
+              <label>Correo Electrónico</label>
               <input type="email" id="prosCorreo" placeholder="ventas@empresa.do">
             </div>
           </div>
+
           <div class="form-row">
             <div class="form-group">
-              <label>Etapa del Pipeline</label>
+              <label>Etapa del Pipeline Comercial *</label>
               <select id="prosEtapa">
                 <option value="Contacto">1. Contacto</option>
                 <option value="Interesado">2. Interesado</option>
@@ -1161,6 +1343,257 @@
           <button type="submit" class="btn btn-primary">Crear Usuario</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: FICHA DETALLADA DE EMPRESA (Prioridad #4: Relación Completa Empresa -> Contactos -> Oportunidades -> Seguimientos) -->
+  <div id="modalDetalleEmpresa" class="modal-backdrop hidden">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 id="detalleEmpresaTitulo">Ficha de Empresa</h3>
+          <span class="badge" id="detalleEmpresaBadgeRnc">RNC</span>
+          <span class="badge badge-success" id="detalleEmpresaBadgeEstado">Cliente</span>
+        </div>
+        <button class="btn-close" onclick="closeModal('modalDetalleEmpresa')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs-nav">
+          <button class="tab-btn active" onclick="switchDetalleEmpresaTab('tabEmpresaInfo')">&#128188; Ficha General</button>
+          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaContactos')">&#128101; Contactos Asociados (<span id="countEmpresaContactos">0</span>)</button>
+          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaOportunidades')">&#128200; Oportunidades (<span id="countEmpresaOportunidades">0</span>)</button>
+          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaSeguimientos')">&#9742; Seguimientos (<span id="countEmpresaSeguimientos">0</span>)</button>
+          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaAuditoria')">&#128221; Actividad & Historial</button>
+        </div>
+
+        <!-- TAB 1: INFO GENERAL -->
+        <div id="tabEmpresaInfo" class="tab-content active" style="padding-top:14px;">
+          <div class="detail-grid">
+            <div class="detail-item"><span class="detail-label">Razón Social:</span><strong id="detEmpRazon">-</strong></div>
+            <div class="detail-item"><span class="detail-label">Nombre Comercial:</span><strong id="detEmpComercial">-</strong></div>
+            <div class="detail-item"><span class="detail-label">RNC:</span><strong id="detEmpRnc">-</strong></div>
+            <div class="detail-item"><span class="detail-label">Industria / Naturaleza:</span><span id="detEmpIndustria">-</span></div>
+            <div class="detail-item"><span class="detail-label">Ubicación:</span><span id="detEmpUbicacion">-</span></div>
+            <div class="detail-item"><span class="detail-label">Dirección:</span><span id="detEmpDireccion">-</span></div>
+            <div class="detail-item"><span class="detail-label">Teléfono:</span><span id="detEmpTelefono">-</span></div>
+            <div class="detail-item"><span class="detail-label">Correo:</span><span id="detEmpCorreo">-</span></div>
+            <div class="detail-item"><span class="detail-label">Sitio Web:</span><span id="detEmpWeb">-</span></div>
+            <div class="detail-item"><span class="detail-label">Tamaño / Empleados:</span><span id="detEmpEmpleados">-</span></div>
+            <div class="detail-item"><span class="detail-label">Responsable Comercial:</span><strong id="detEmpResponsable" style="color:#60a5fa;">-</strong></div>
+            <div class="detail-item"><span class="detail-label">Fecha de Registro:</span><span id="detEmpRegistro">-</span></div>
+          </div>
+        </div>
+
+        <!-- TAB 2: CONTACTOS ASOCIADOS -->
+        <div id="tabEmpresaContactos" class="tab-content" style="padding-top:14px;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nombre y Cargo</th>
+                  <th>Teléfono / WhatsApp</th>
+                  <th>Correo</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="detEmpresaContactosTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 3: OPORTUNIDADES ASOCIADAS -->
+        <div id="tabEmpresaOportunidades" class="tab-content" style="padding-top:14px;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Oportunidad</th>
+                  <th>Etapa</th>
+                  <th>Plan & Módulos</th>
+                  <th>Total Mensual</th>
+                  <th>Valor Anual</th>
+                  <th>Contacto</th>
+                </tr>
+              </thead>
+              <tbody id="detEmpresaOportunidadesTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 4: SEGUIMIENTOS -->
+        <div id="tabEmpresaSeguimientos" class="tab-content" style="padding-top:14px;">
+          <div id="detEmpresaSeguimientosList"></div>
+        </div>
+
+        <!-- TAB 5: AUDITORÍA -->
+        <div id="tabEmpresaAuditoria" class="tab-content" style="padding-top:14px;">
+          <div id="detEmpresaAuditoriaList"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalDetalleEmpresa')">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="btnEditarDesdeDetalleEmpresa">Editar Empresa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FICHA DETALLADA DE CONTACTO (Prioridad #4: Relación Completa Contacto -> Empresa -> Oportunidades -> Historial) -->
+  <div id="modalDetalleContacto" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h3 id="detalleContactoTitulo">Ficha de Contacto</h3>
+          <span class="badge" id="detalleContactoEmpresaLink" style="cursor:pointer;" title="Clic para ver empresa">&#127970; Ver Empresa Asociada</span>
+        </div>
+        <button class="btn-close" onclick="closeModal('modalDetalleContacto')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-card-box">
+          <div class="detail-grid">
+            <div class="detail-item"><span class="detail-label">Nombre Completo:</span><strong id="detContNombre">-</strong></div>
+            <div class="detail-item"><span class="detail-label">Cargo / Puesto:</span><span id="detContCargo">-</span></div>
+            <div class="detail-item"><span class="detail-label">Empresa Asociada:</span><strong id="detContEmpresa" style="color:#60a5fa;">-</strong></div>
+            <div class="detail-item"><span class="detail-label">Estado Comercial:</span><span id="detContEstado" class="badge">-</span></div>
+            <div class="detail-item"><span class="detail-label">Teléfono Directo:</span><span id="detContTelefono">-</span></div>
+            <div class="detail-item"><span class="detail-label">WhatsApp:</span><span id="detContWhatsapp">-</span></div>
+            <div class="detail-item"><span class="detail-label">Correo Electrónico:</span><span id="detContCorreo">-</span></div>
+            <div class="detail-item"><span class="detail-label">Responsable Comercial:</span><strong id="detContResponsable">-</strong></div>
+            <div class="detail-item"><span class="detail-label">Producto de Interés:</span><span id="detContProducto">-</span></div>
+            <div class="detail-item"><span class="detail-label">Módulo Principal:</span><span id="detContModulo">-</span></div>
+            <div class="detail-item"><span class="detail-label">Ubicación:</span><span id="detContUbicacion">-</span></div>
+            <div class="detail-item"><span class="detail-label">Próximo Seguimiento:</span><span id="detContProximoSeg">-</span></div>
+          </div>
+          <div style="margin-top:12px;">
+            <span class="detail-label">Etiquetas:</span>
+            <div id="detContEtiquetas" class="tag-quick-pills" style="margin-top:4px;"></div>
+          </div>
+          <div style="margin-top:12px;">
+            <span class="detail-label">Observaciones Comerciales:</span>
+            <p id="detContObservaciones" class="text-muted" style="font-size:12px; margin-top:2px;">-</p>
+          </div>
+          <div style="margin-top:8px;">
+            <span class="detail-label">Notas Internas:</span>
+            <p id="detContNotas" class="text-muted" style="font-size:12px; margin-top:2px;">-</p>
+          </div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px;">&#128200; Oportunidades Relacionadas con esta Empresa / Contacto</div>
+        <div id="detContOportunidadesList" style="margin-top:8px;"></div>
+
+        <div class="form-section-title" style="margin-top:16px;">&#9742; Historial de Seguimientos</div>
+        <div id="detContSeguimientosList" style="margin-top:8px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalDetalleContacto')">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="btnEditarDesdeDetalleContacto">Editar Contacto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CORREO MASIVO (Prioridad #8) -->
+  <div id="modalCorreoMasivo" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>&#9993; Enviar Correo Masivo</h3>
+        <button class="btn-close" onclick="closeModal('modalCorreoMasivo')">&times;</button>
+      </div>
+      <form id="formCorreoMasivo" onsubmit="ejecutarEnvioCorreoMasivo(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Destinatarios Seleccionados (<span id="bulkEmailCount">0</span> contactos con correo)</label>
+            <div id="bulkEmailChips" class="overdue-chips" style="max-height:100px; overflow-y:auto;"></div>
+          </div>
+          <div class="form-group">
+            <label>Asunto del Correo *</label>
+            <input type="text" id="bulkEmailSubject" required placeholder="ej. Presentación Facturación Electrónica IB SYSTEM">
+          </div>
+          <div class="form-group">
+            <label>Mensaje / Propuesta *</label>
+            <textarea id="bulkEmailBody" rows="5" required placeholder="Estimado cliente, le escribimos desde IB SYSTEM S.R.L. con motivo de..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalCorreoMasivo')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Abrir en Cliente de Correo / Registrar Envío</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: WHATSAPP MASIVO (Prioridad #8) -->
+  <div id="modalWhatsappMasivo" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>&#128172; Enviar WhatsApp Masivo</h3>
+        <button class="btn-close" onclick="closeModal('modalWhatsappMasivo')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:12px;">Haz clic en cada botón para abrir WhatsApp Web con el mensaje predefinido para cada contacto seleccionado:</p>
+        <div class="form-group">
+          <label>Mensaje Preconfigurado:</label>
+          <textarea id="bulkWhatsappText" rows="2" oninput="actualizarEnlacesWhatsappMasivo()" class="filter-input">¡Hola! Le contactamos de IB SYSTEM S.R.L. para dar seguimiento a su solicitud de software comercial.</textarea>
+        </div>
+        <div id="bulkWhatsappList" class="whatsapp-queue-list" style="max-height:260px; overflow-y:auto;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalWhatsappMasivo')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ASIGNAR RESPONSABLE MASIVO (Prioridad #8) -->
+  <div id="modalAsignarResponsableMasivo" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>&#128100; Asignar Responsable Comercial</h3>
+        <button class="btn-close" onclick="closeModal('modalAsignarResponsableMasivo')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:12px;">Selecciona el ejecutivo comercial que se asignará a los contactos seleccionados:</p>
+        <div class="form-group">
+          <label>Ejecutivo Responsable *</label>
+          <select id="bulkSelectResponsable" class="filter-select"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalAsignarResponsableMasivo')">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="ejecutarAsignarResponsableMasivo()">Aplicar Asignación</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ASIGNAR ETIQUETA MASIVA (Prioridad #8) -->
+  <div id="modalAsignarEtiquetaMasivo" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>&#127991; Asignar Etiqueta a Seleccionados</h3>
+        <button class="btn-close" onclick="closeModal('modalAsignarEtiquetaMasivo')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Seleccionar Etiqueta Oficial o Escribir Nueva:</label>
+          <select id="bulkSelectEtiqueta" class="filter-select">
+            <option value="Lead">Lead</option>
+            <option value="Prospecto">Prospecto</option>
+            <option value="Cliente Activo">Cliente Activo</option>
+            <option value="Facturación Electrónica">Facturación Electrónica</option>
+            <option value="POS Digital">POS Digital</option>
+            <option value="ITHOT System">ITHOT System</option>
+            <option value="Inventario">Inventario</option>
+            <option value="Ventas">Ventas</option>
+            <option value="Contabilidad">Contabilidad</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>O escribir etiqueta personalizada:</label>
+          <input type="text" id="bulkCustomEtiqueta" placeholder="ej. Prioridad Q4">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalAsignarEtiquetaMasivo')">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="ejecutarAsignarEtiquetaMasivo()">Asignar Etiqueta</button>
+      </div>
     </div>
   </div>
 

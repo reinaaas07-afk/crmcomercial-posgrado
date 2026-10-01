@@ -187,9 +187,13 @@ export default function App() {
   const [isCreateActivityModalOpen, setIsCreateActivityModalOpen] = useState(false);
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [isAcademicModalOpen, setIsAcademicModalOpen] = useState(false);
+  const isInitialServerLoaded = React.useRef(false);
 
   // Synchronize state changes to localStorage & backend persistent storage
   useEffect(() => {
+    // Solo sincronizar hacia el servidor si ya hemos cargado los datos iniciales del backend
+    if (!isInitialServerLoaded.current) return;
+
     saveRelationalData(dbState);
     // Push sync to backend to ensure permanent file system & MySQL persistence
     fetch('/api/db/sync', {
@@ -231,6 +235,9 @@ export default function App() {
       })
       .catch((err) => {
         console.info('[Persistencia] Iniciando con estado local verificado:', err);
+      })
+      .finally(() => {
+        isInitialServerLoaded.current = true;
       });
   }, []);
 

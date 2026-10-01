@@ -20,7 +20,8 @@ const state = {
     metas_comerciales: []
   },
   currentEditingEntity: null,
-  importPendingRows: []
+  importPendingRows: [],
+  selectedContactIds: []
 };
 
 // --------------------------------------------------------------------------
@@ -250,8 +251,9 @@ async function loadAllData() {
     if (!res.ok) throw new Error('Error al sincronizar base de datos');
     state.db = await res.json();
 
-    // Actualizar selects de usuarios responsables
+    // Actualizar selects de usuarios y empresas asociadas
     populateUserSelects();
+    populateEmpresasSelects();
 
     // Renderizar módulos
     renderDashboard();
@@ -273,15 +275,50 @@ function populateUserSelects() {
   const users = state.db.usuarios || [];
   const options = users.map((u) => `<option value="${u.nombre} ${u.apellido || ''}">${u.nombre} ${u.apellido || ''} (${u.rol})</option>`).join('');
 
-  ['empresaResponsable', 'contactoResponsable', 'prosResponsable', 'tareaAsignado'].forEach((id) => {
+  ['empresaResponsable', 'contactoResponsable', 'prosResponsable', 'tareaAsignado', 'bulkSelectResponsable', 'filtroContactoResponsable'].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = options;
+    if (el) {
+      if (id === 'filtroContactoResponsable') {
+        el.innerHTML = '<option value="">Todos los ejecutivos</option>' + options;
+      } else {
+        el.innerHTML = options;
+      }
+    }
   });
 
   // Select de prospectos en modal de seguimiento
   const segPros = document.getElementById('segProspectoId');
   if (segPros) {
     segPros.innerHTML = (state.db.prospectos || []).map((p) => `<option value="${p.id}">${p.empresa} (${p.contacto_principal || 'Sin contacto'})</option>`).join('');
+  }
+}
+
+// Llenar listas desplegables de empresas asociadas (Prioridad #3 y #5)
+function populateEmpresasSelects() {
+  const empresas = (state.db.empresas || []).slice().sort((a, b) => a.razon_social.localeCompare(b.razon_social));
+  
+  // Opciones para modal de contacto y modal de oportunidad
+  const options = empresas.map((e) => `<option value="${e.id}">${escapeHtml(e.razon_social)}${e.nombre_comercial ? ' (' + escapeHtml(e.nombre_comercial) + ')' : ''}</option>`).join('');
+
+  const contactoEmpSelect = document.getElementById('contactoEmpresaSelect');
+  if (contactoEmpSelect) {
+    const prevVal = contactoEmpSelect.value;
+    contactoEmpSelect.innerHTML = '<option value="">-- Seleccionar Empresa Existente --</option>' + options;
+    if (prevVal) contactoEmpSelect.value = prevVal;
+  }
+
+  const prosEmpSelect = document.getElementById('prosEmpresaSelect');
+  if (prosEmpSelect) {
+    const prevVal = prosEmpSelect.value;
+    prosEmpSelect.innerHTML = '<option value="">-- Seleccionar Empresa Existente --</option>' + options;
+    if (prevVal) prosEmpSelect.value = prevVal;
+  }
+
+  const filtroEmp = document.getElementById('filtroContactoEmpresa');
+  if (filtroEmp) {
+    const prevVal = filtroEmp.value;
+    filtroEmp.innerHTML = '<option value="">Todas las empresas</option>' + empresas.map((e) => `<option value="${escapeHtml(e.razon_social)}">${escapeHtml(e.razon_social)}</option>`).join('');
+    if (prevVal) filtroEmp.value = prevVal;
   }
 }
 
@@ -362,7 +399,7 @@ function renderDashboard() {
 }
 
 // --------------------------------------------------------------------------
-// MÓDULO 2: EMPRESAS
+// MÓDULO 2: EMPRESAS (Prioridad #4: Relación Completa Empresa -> Contactos -> Oportunidades)
 // --------------------------------------------------------------------------
 function renderEmpresasTable() {
   const tbody = document.getElementById('tableEmpresasBody');
@@ -373,7 +410,8 @@ function renderEmpresasTable() {
     (e) =>
       e.razon_social.toLowerCase().includes(query) ||
       (e.rnc || '').toLowerCase().includes(query) ||
-      (e.industria || '').toLowerCase().includes(query)
+      (e.industria || '').toLowerCase().includes(query) ||
+      (e.ciudad || '').toLowerCase().includes(query)
   );
 
   tbody.innerHTML = empresas
@@ -381,19 +419,22 @@ function renderEmpresasTable() {
       (e) => `
       <tr>
         <td>
-          <strong>${e.razon_social}</strong>
-          ${e.nombre_comercial ? `<div class="text-muted" style="font-size:11px;">${e.nombre_comercial}</div>` : ''}
+          <a href="javascript:void(0)" onclick="openEmpresaDetalle(${e.id})" style="color:var(--text-main); font-weight:700; text-decoration:none;" title="Ver Ficha Completa">
+            ${escapeHtml(e.razon_social)}
+          </a>
+          ${e.nombre_comercial ? `<div class="text-muted" style="font-size:11px;">${escapeHtml(e.nombre_comercial)}</div>` : ''}
         </td>
-        <td><code>${e.rnc}</code></td>
-        <td>${e.ciudad}, ${e.provincia}</td>
+        <td><code>${escapeHtml(e.rnc)}</code></td>
+        <td>${escapeHtml(e.ciudad || '')}, ${escapeHtml(e.provincia || '')}</td>
         <td>
-          <div>${e.telefono || '-'}</div>
-          <div class="text-muted" style="font-size:11px;">${e.correo || '-'}</div>
+          <div>${escapeHtml(e.telefono || '-')}</div>
+          <div class="text-muted" style="font-size:11px;">${escapeHtml(e.correo || '-')}</div>
         </td>
-        <td>${e.industria || 'General'}</td>
-        <td><span class="badge" style="background:#1e3a8a; color:#93c5fd; padding:2px 8px; border-radius:4px; font-size:11px;">${e.estado_comercial || 'Prospecto'}</span></td>
-        <td>${e.responsable_comercial || 'Yenifer Reina'}</td>
+        <td>${escapeHtml(e.industria || 'General')}</td>
+        <td><span class="badge" style="background:#1e3a8a; color:#93c5fd; padding:2px 8px; border-radius:4px; font-size:11px;">${escapeHtml(e.estado_comercial || 'Prospecto')}</span></td>
+        <td>${escapeHtml(e.responsable_comercial || 'Yenifer Reina')}</td>
         <td>
+          <button class="btn btn-outline-primary btn-sm" onclick="openEmpresaDetalle(${e.id})" title="Ver ficha con contactos y oportunidades">&#128065; Ficha</button>
           <button class="btn btn-outline btn-sm" onclick="editEmpresa(${e.id})">Editar</button>
           <button class="btn btn-outline-danger btn-sm" onclick="deleteEmpresa(${e.id})">Eliminar</button>
         </td>
@@ -474,38 +515,127 @@ async function deleteEmpresa(id) {
 }
 
 // --------------------------------------------------------------------------
-// MÓDULO 3: CONTACTOS
+// MÓDULO 3: CONTACTOS COMERCIALES (Prioridad #2, #3, #6, #7, #8)
 // --------------------------------------------------------------------------
 function renderContactosTable() {
   const tbody = document.getElementById('tableContactosBody');
   if (!tbody) return;
 
-  const query = (document.getElementById('filterContactos')?.value || '').toLowerCase();
-  const contactos = (state.db.contactos || []).filter(
-    (c) =>
-      c.nombre.toLowerCase().includes(query) ||
-      (c.apellido || '').toLowerCase().includes(query) ||
-      c.empresa.toLowerCase().includes(query) ||
-      (c.cargo || '').toLowerCase().includes(query)
-  );
+  // Filtros Avanzados (Prioridad #7)
+  const query = (document.getElementById('filterContactos')?.value || '').toLowerCase().trim();
+  const filtroEmpresa = (document.getElementById('filtroContactoEmpresa')?.value || '').toLowerCase().trim();
+  const filtroEstado = (document.getElementById('filtroContactoEstado')?.value || '').trim();
+  const filtroProducto = (document.getElementById('filtroContactoProducto')?.value || '').trim();
+  const filtroResponsable = (document.getElementById('filtroContactoResponsable')?.value || '').trim();
+  const filtroEtiqueta = (document.getElementById('filtroContactoEtiqueta')?.value || '').toLowerCase().trim();
+
+  if (!state.selectedContactos) {
+    state.selectedContactos = new Set();
+  }
+
+  const contactos = (state.db.contactos || []).filter((c) => {
+    // Búsqueda por texto
+    if (query) {
+      const matchText = (
+        (c.nombre || '') + ' ' +
+        (c.apellido || '') + ' ' +
+        (c.empresa || '') + ' ' +
+        (c.cargo || '') + ' ' +
+        (c.telefono || '') + ' ' +
+        (c.correo || '')
+      ).toLowerCase();
+      if (!matchText.includes(query)) return false;
+    }
+
+    // Filtro por Empresa Asociada
+    if (filtroEmpresa) {
+      const empNombre = (c.empresa || '').toLowerCase();
+      if (empNombre !== filtroEmpresa && !empNombre.includes(filtroEmpresa)) return false;
+    }
+
+    // Filtro por Estado Comercial
+    if (filtroEstado && c.estado_comercial !== filtroEstado) return false;
+
+    // Filtro por Producto
+    if (filtroProducto && c.producto_interes !== filtroProducto) return false;
+
+    // Filtro por Responsable Comercial
+    if (filtroResponsable && c.responsable_comercial !== filtroResponsable) return false;
+
+    // Filtro por Etiquetas
+    if (filtroEtiqueta) {
+      const tags = (c.etiquetas || '').toLowerCase();
+      const matchTag = tags.includes(filtroEtiqueta) ||
+        (c.estado_comercial || '').toLowerCase() === filtroEtiqueta ||
+        (c.producto_interes || '').toLowerCase() === filtroEtiqueta ||
+        (c.modulo_principal || '').toLowerCase() === filtroEtiqueta;
+      if (!matchTag) return false;
+    }
+
+    return true;
+  });
+
+  // Guardar lista filtrada actual para exportación filtrada
+  state.currentFilteredContactos = contactos;
+
+  if (contactos.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);">
+          No se encontraron contactos que coincidan con los filtros aplicados.
+        </td>
+      </tr>
+    `;
+    updateMassActionsBar();
+    return;
+  }
 
   tbody.innerHTML = contactos
     .map((c) => {
       const cleanPhone = (c.whatsapp || c.telefono || '').replace(/[^0-9]/g, '');
       const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
+      const isSelected = state.selectedContactos.has(c.id);
+
+      // Badge de estado comercial
+      let badgeColor = '#3b82f6';
+      if (c.estado_comercial === 'Cliente Activo' || c.estado_comercial === 'Cliente') badgeColor = '#10b981';
+      else if (c.estado_comercial === 'Cliente Inactivo') badgeColor = '#ef4444';
+      else if (c.estado_comercial === 'Lead') badgeColor = '#8b5cf6';
+      else if (c.estado_comercial === 'Prospecto') badgeColor = '#f59e0b';
 
       return `
-      <tr>
-        <td><strong>${c.nombre} ${c.apellido || ''}</strong></td>
-        <td>${c.empresa}</td>
-        <td>${c.cargo || 'Decisor'}</td>
-        <td>
-          <div>${c.telefono || '-'}</div>
-          ${cleanPhone ? `<a href="${waUrl}" target="_blank" style="color:#22c55e; font-size:11px; text-decoration:none;">WhatsApp Directo</a>` : ''}
+      <tr class="${isSelected ? 'row-selected' : ''}">
+        <td style="text-align: center;">
+          <input type="checkbox" class="contacto-row-check" value="${c.id}" ${isSelected ? 'checked' : ''} onchange="toggleContactoSelect(${c.id}, this)">
         </td>
-        <td>${c.responsable_comercial || 'Yenifer Reina'}</td>
-        <td style="font-size:12px; font-family:var(--font-mono);">${c.ultimo_contacto ? c.ultimo_contacto.split(' ')[0] : 'Nunca'}</td>
         <td>
+          <a href="javascript:void(0)" onclick="openContactoDetalle(${c.id})" style="color:var(--text-main); font-weight:700; text-decoration:none;" title="Ver Ficha de Contacto">
+            ${escapeHtml(c.nombre)} ${escapeHtml(c.apellido || '')}
+          </a>
+          ${c.etiquetas ? `<div style="font-size:10px; color:#94a3b8; margin-top:2px;">&#127991; ${escapeHtml(c.etiquetas)}</div>` : ''}
+        </td>
+        <td>
+          <a href="javascript:void(0)" onclick="openEmpresaDetalle(${c.empresa_id || 0}, '${escapeHtml(c.empresa ? c.empresa.replace(/'/g, "\\'") : '')}')" style="color:#60a5fa; text-decoration:none; font-weight:600;" title="Ver Empresa Asociada">
+            &#127970; ${escapeHtml(c.empresa || 'Sin Empresa')}
+          </a>
+        </td>
+        <td>${escapeHtml(c.cargo || 'Decisor')}</td>
+        <td>
+          <div>${escapeHtml(c.telefono || '-')}</div>
+          ${cleanPhone ? `<a href="${waUrl}" target="_blank" style="color:#22c55e; font-size:11px; text-decoration:none; font-weight:600;">&#128172; WhatsApp</a>` : ''}
+        </td>
+        <td>
+          <span class="badge" style="background:${badgeColor}; color:#fff; font-size:11px; padding:2px 8px; border-radius:4px;">
+            ${escapeHtml(c.estado_comercial || 'Prospecto')}
+          </span>
+        </td>
+        <td>
+          <div style="font-weight:600; font-size:12px;">${escapeHtml(c.producto_interes || 'Facturación Electrónica')}</div>
+          <div class="text-muted" style="font-size:11px;">Módulo: ${escapeHtml(c.modulo_principal || 'Ventas')}</div>
+        </td>
+        <td>${escapeHtml(c.responsable_comercial || 'Yenifer Reina')}</td>
+        <td>
+          <button class="btn btn-outline-primary btn-sm" onclick="openContactoDetalle(${c.id})" title="Ver Ficha Completa">&#128065; Ficha</button>
           <button class="btn btn-outline btn-sm" onclick="editContacto(${c.id})">Editar</button>
           <button class="btn btn-outline-danger btn-sm" onclick="deleteContacto(${c.id})">Eliminar</button>
         </td>
@@ -513,21 +643,57 @@ function renderContactosTable() {
     `;
     })
     .join('');
+
+  updateMassActionsBar();
 }
 
+function resetFiltrosContactos() {
+  const elQuery = document.getElementById('filterContactos');
+  const elEmpresa = document.getElementById('filtroContactoEmpresa');
+  const elEstado = document.getElementById('filtroContactoEstado');
+  const elProducto = document.getElementById('filtroContactoProducto');
+  const elResponsable = document.getElementById('filtroContactoResponsable');
+  const elEtiqueta = document.getElementById('filtroContactoEtiqueta');
+
+  if (elQuery) elQuery.value = '';
+  if (elEmpresa) elEmpresa.value = '';
+  if (elEstado) elEstado.value = '';
+  if (elProducto) elProducto.value = '';
+  if (elResponsable) elResponsable.value = '';
+  if (elEtiqueta) elEtiqueta.value = '';
+
+  renderContactosTable();
+}
+
+// Guardar Contacto (Prioridad #2: Restauración de los 19 campos completos y Empresa Asociada)
 async function handleSaveContacto(e) {
   e.preventDefault();
   const id = document.getElementById('contactoId').value;
+  const selectEmpresa = document.getElementById('contactoEmpresaSelect');
+  const empresaId = selectEmpresa ? (selectEmpresa.value ? Number(selectEmpresa.value) : null) : null;
+  const empresaNombre = selectEmpresa && selectEmpresa.selectedIndex >= 0 ? selectEmpresa.options[selectEmpresa.selectedIndex].text.replace(/\s*\(.*?\)\s*$/, '').trim() : '';
+
   const payload = {
     nombre: document.getElementById('contactoNombre').value.trim(),
     apellido: document.getElementById('contactoApellido').value.trim(),
-    empresa: document.getElementById('contactoEmpresa').value.trim(),
+    empresa_id: empresaId,
+    empresa: empresaNombre,
     cargo: document.getElementById('contactoCargo').value.trim(),
     telefono: document.getElementById('contactoTelefono').value.trim(),
     whatsapp: document.getElementById('contactoWhatsapp').value.trim(),
     correo: document.getElementById('contactoCorreo').value.trim(),
+    naturaleza_negocio: document.getElementById('contactoNaturaleza')?.value || 'Comercial / Servicios',
+    estado_comercial: document.getElementById('contactoEstadoComercial')?.value || 'Prospecto',
+    producto_interes: document.getElementById('contactoProductoInteres')?.value || 'Facturación Electrónica',
+    modulo_principal: document.getElementById('contactoModuloPrincipal')?.value || 'Ventas',
     responsable_comercial: document.getElementById('contactoResponsable').value,
-    notas: document.getElementById('contactoNotas').value.trim(),
+    ciudad: document.getElementById('contactoCiudad')?.value.trim() || 'Santo Domingo',
+    provincia: document.getElementById('contactoProvincia')?.value.trim() || 'Distrito Nacional',
+    direccion: document.getElementById('contactoDireccion')?.value.trim() || '',
+    fecha_proximo_seguimiento: document.getElementById('contactoProximoSeguimiento')?.value || null,
+    etiquetas: document.getElementById('contactoEtiquetas')?.value.trim() || '',
+    observaciones_comerciales: document.getElementById('contactoObservacionesComerciales')?.value.trim() || '',
+    notas: document.getElementById('contactoNotas')?.value.trim() || '',
     autor: state.currentUser ? state.currentUser.nombre : 'Admin'
   };
 
@@ -543,9 +709,12 @@ async function handleSaveContacto(e) {
     if (res.ok) {
       closeModal('modalContacto');
       loadAllData();
+    } else {
+      const err = await res.json();
+      alert('Error al guardar contacto: ' + (err.error || 'Verifique los datos'));
     }
   } catch (err) {
-    alert('Error al guardar contacto');
+    alert('Error al comunicarse con el servidor para guardar contacto');
   }
 }
 
@@ -554,15 +723,39 @@ function editContacto(id) {
   if (!c) return;
 
   document.getElementById('contactoId').value = c.id;
-  document.getElementById('contactoNombre').value = c.nombre;
+  document.getElementById('contactoNombre').value = c.nombre || '';
   document.getElementById('contactoApellido').value = c.apellido || '';
-  document.getElementById('contactoEmpresa').value = c.empresa;
+
+  // Seleccionar empresa asociada
+  const empSelect = document.getElementById('contactoEmpresaSelect');
+  if (empSelect) {
+    if (c.empresa_id) {
+      empSelect.value = c.empresa_id;
+    } else {
+      // Buscar por nombre si no tiene ID
+      const matching = Array.from(empSelect.options).find((opt) => opt.text.toLowerCase().includes((c.empresa || '').toLowerCase()));
+      if (matching) empSelect.value = matching.value;
+    }
+  }
+
   document.getElementById('contactoCargo').value = c.cargo || '';
   document.getElementById('contactoTelefono').value = c.telefono || '';
   document.getElementById('contactoWhatsapp').value = c.whatsapp || '';
   document.getElementById('contactoCorreo').value = c.correo || '';
-  document.getElementById('contactoResponsable').value = c.responsable_comercial || '';
-  document.getElementById('contactoNotas').value = c.notas || '';
+
+  if (document.getElementById('contactoNaturaleza')) document.getElementById('contactoNaturaleza').value = c.naturaleza_negocio || 'Comercial / Servicios';
+  if (document.getElementById('contactoEstadoComercial')) document.getElementById('contactoEstadoComercial').value = c.estado_comercial || 'Prospecto';
+  if (document.getElementById('contactoProductoInteres')) document.getElementById('contactoProductoInteres').value = c.producto_interes || 'Facturación Electrónica';
+  if (document.getElementById('contactoModuloPrincipal')) document.getElementById('contactoModuloPrincipal').value = c.modulo_principal || 'Ventas';
+  if (document.getElementById('contactoResponsable')) document.getElementById('contactoResponsable').value = c.responsable_comercial || '';
+
+  if (document.getElementById('contactoCiudad')) document.getElementById('contactoCiudad').value = c.ciudad || 'Santo Domingo';
+  if (document.getElementById('contactoProvincia')) document.getElementById('contactoProvincia').value = c.provincia || 'Distrito Nacional';
+  if (document.getElementById('contactoDireccion')) document.getElementById('contactoDireccion').value = c.direccion || '';
+  if (document.getElementById('contactoProximoSeguimiento')) document.getElementById('contactoProximoSeguimiento').value = c.fecha_proximo_seguimiento || '';
+  if (document.getElementById('contactoEtiquetas')) document.getElementById('contactoEtiquetas').value = c.etiquetas || '';
+  if (document.getElementById('contactoObservacionesComerciales')) document.getElementById('contactoObservacionesComerciales').value = c.observaciones_comerciales || '';
+  if (document.getElementById('contactoNotas')) document.getElementById('contactoNotas').value = c.notas || '';
 
   document.getElementById('modalContactoTitle').textContent = 'Editar Contacto';
   openModal('modalContacto');
@@ -573,15 +766,646 @@ async function deleteContacto(id) {
   try {
     const autor = state.currentUser ? state.currentUser.nombre : 'Admin';
     await fetch(`/api/contactos/${id}?autor=${encodeURIComponent(autor)}`, { method: 'DELETE' });
+    if (state.selectedContactos) state.selectedContactos.delete(id);
     loadAllData();
   } catch (err) {
-    alert('Error al eliminar');
+    alert('Error al eliminar contacto');
   }
+}
+
+// --------------------------------------------------------------------------
+// ACCIONES MASIVAS EN CONTACTOS (Prioridad #8)
+// --------------------------------------------------------------------------
+function toggleSelectAllContactos(masterEl) {
+  if (!state.selectedContactos) state.selectedContactos = new Set();
+  const checkboxes = document.querySelectorAll('.contacto-row-check');
+
+  if (masterEl.checked) {
+    checkboxes.forEach((cb) => {
+      cb.checked = true;
+      state.selectedContactos.add(Number(cb.value));
+    });
+  } else {
+    checkboxes.forEach((cb) => {
+      cb.checked = false;
+      state.selectedContactos.delete(Number(cb.value));
+    });
+  }
+
+  updateMassActionsBar();
+}
+
+function toggleContactoSelect(id, checkboxEl) {
+  if (!state.selectedContactos) state.selectedContactos = new Set();
+
+  if (checkboxEl.checked) {
+    state.selectedContactos.add(Number(id));
+  } else {
+    state.selectedContactos.delete(Number(id));
+  }
+
+  updateMassActionsBar();
+}
+
+function deseleccionarTodosContactos() {
+  if (state.selectedContactos) state.selectedContactos.clear();
+  document.querySelectorAll('.contacto-row-check').forEach((cb) => { cb.checked = false; });
+  const selectAll = document.getElementById('selectAllContactos');
+  if (selectAll) selectAll.checked = false;
+  updateMassActionsBar();
+}
+
+function updateMassActionsBar() {
+  const bar = document.getElementById('massActionsBar');
+  const countBadge = document.getElementById('selectedCountBadge');
+  const countText = document.getElementById('selectedCountText');
+  const selectAll = document.getElementById('selectAllContactos');
+
+  const count = state.selectedContactos ? state.selectedContactos.size : 0;
+
+  if (countBadge) countBadge.textContent = count;
+  if (countText) countText.textContent = count === 1 ? 'contacto seleccionado' : 'contactos seleccionados';
+
+  if (bar) {
+    if (count > 0) {
+      bar.classList.remove('hidden');
+    } else {
+      bar.classList.add('hidden');
+    }
+  }
+
+  if (selectAll) {
+    const totalCheckboxes = document.querySelectorAll('.contacto-row-check').length;
+    selectAll.checked = totalCheckboxes > 0 && count >= totalCheckboxes;
+  }
+}
+
+function getSelectedContactosList() {
+  if (!state.selectedContactos || state.selectedContactos.size === 0) return [];
+  return (state.db.contactos || []).filter((c) => state.selectedContactos.has(c.id));
+}
+
+// Correo Masivo
+function openModalCorreoMasivo() {
+  const selected = getSelectedContactosList().filter((c) => c.correo && c.correo.includes('@'));
+  if (selected.length === 0) {
+    alert('Ninguno de los contactos seleccionados tiene un correo electrónico válido registrado.');
+    return;
+  }
+
+  const countEl = document.getElementById('bulkEmailCount');
+  if (countEl) countEl.textContent = selected.length;
+
+  const chipsEl = document.getElementById('bulkEmailChips');
+  if (chipsEl) {
+    chipsEl.innerHTML = selected.map((c) => `<span class="badge" style="background:#1e293b; padding:3px 8px; border-radius:4px; font-size:11px;">${escapeHtml(c.nombre)} &lt;${escapeHtml(c.correo)}&gt;</span>`).join(' ');
+  }
+
+  openModal('modalCorreoMasivo');
+}
+
+async function ejecutarEnvioCorreoMasivo(e) {
+  e.preventDefault();
+  const selected = getSelectedContactosList().filter((c) => c.correo && c.correo.includes('@'));
+  const subject = document.getElementById('bulkEmailSubject')?.value.trim();
+  const body = document.getElementById('bulkEmailBody')?.value.trim();
+
+  if (selected.length === 0 || !subject) return;
+
+  const emails = selected.map((c) => c.correo).join(',');
+  const mailtoUrl = `mailto:?bcc=${encodeURIComponent(emails)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  // Abrir cliente de correo del sistema operativo
+  window.open(mailtoUrl, '_blank');
+
+  // Registrar auditoría en backend
+  try {
+    const ids = selected.map((c) => c.id);
+    const autor = state.currentUser ? state.currentUser.nombre : 'Admin';
+    await fetch('/api/contactos/bulk-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, accion: 'enviar_correo', valor: subject, autor })
+    });
+  } catch (err) {
+    console.error(err);
+  }
+
+  closeModal('modalCorreoMasivo');
+  alert(`Se ha preparado el envío de correo masivo para ${selected.length} destinatarios en tu cliente de correo.`);
+  loadAllData();
+}
+
+// WhatsApp Masivo
+function openModalWhatsappMasivo() {
+  const selected = getSelectedContactosList();
+  if (selected.length === 0) {
+    alert('Por favor selecciona al menos un contacto.');
+    return;
+  }
+
+  actualizarEnlacesWhatsappMasivo();
+  openModal('modalWhatsappMasivo');
+}
+
+function actualizarEnlacesWhatsappMasivo() {
+  const container = document.getElementById('bulkWhatsappList');
+  if (!container) return;
+
+  const selected = getSelectedContactosList();
+  const baseMessage = document.getElementById('bulkWhatsappText')?.value.trim() || '¡Hola! Le contactamos de IB SYSTEM.';
+
+  container.innerHTML = selected
+    .map((c) => {
+      const cleanPhone = (c.whatsapp || c.telefono || '').replace(/[^0-9]/g, '');
+      const hasPhone = Boolean(cleanPhone);
+      const url = hasPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(baseMessage)}` : '#';
+
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-color); font-size:12px;">
+          <div>
+            <strong>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido || '')}</strong>
+            <span class="text-muted"> (${escapeHtml(c.empresa || 'Empresa')})</span>
+            <div style="color:${hasPhone ? '#22c55e' : '#ef4444'}; font-size:11px;">
+              ${hasPhone ? `+${cleanPhone}` : 'Sin teléfono válido'}
+            </div>
+          </div>
+          <div>
+            ${hasPhone
+              ? `<a href="${url}" target="_blank" class="btn btn-outline-success btn-sm" style="text-decoration:none;">Abrir Chat</a>`
+              : `<span class="text-muted" style="font-size:11px;">No disponible</span>`
+            }
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+// Asignar Responsable Masivo
+function openModalAsignarResponsableMasivo() {
+  const count = state.selectedContactos ? state.selectedContactos.size : 0;
+  if (count === 0) {
+    alert('Por favor selecciona al menos un contacto.');
+    return;
+  }
+  openModal('modalAsignarResponsableMasivo');
+}
+
+async function ejecutarAsignarResponsableMasivo() {
+  const ids = Array.from(state.selectedContactos || []);
+  const responsable = document.getElementById('bulkSelectResponsable')?.value;
+  if (!responsable || ids.length === 0) return;
+
+  try {
+    const autor = state.currentUser ? state.currentUser.nombre : 'Admin';
+    const res = await fetch('/api/contactos/bulk-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, accion: 'asignar_responsable', valor: responsable, autor })
+    });
+
+    if (res.ok) {
+      closeModal('modalAsignarResponsableMasivo');
+      deseleccionarTodosContactos();
+      loadAllData();
+      alert(`Se ha asignado a "${responsable}" como responsable de ${ids.length} contactos.`);
+    }
+  } catch (err) {
+    alert('Error al asignar responsable');
+  }
+}
+
+// Asignar Etiqueta Masiva
+function openModalAsignarEtiquetaMasivo() {
+  const count = state.selectedContactos ? state.selectedContactos.size : 0;
+  if (count === 0) {
+    alert('Por favor selecciona al menos un contacto.');
+    return;
+  }
+  openModal('modalAsignarEtiquetaMasivo');
+}
+
+async function ejecutarAsignarEtiquetaMasivo() {
+  const ids = Array.from(state.selectedContactos || []);
+  const selectEtiqueta = document.getElementById('bulkSelectEtiqueta')?.value;
+  const customEtiqueta = document.getElementById('bulkCustomEtiqueta')?.value.trim();
+  const etiqueta = customEtiqueta || selectEtiqueta;
+
+  if (!etiqueta || ids.length === 0) return;
+
+  try {
+    const autor = state.currentUser ? state.currentUser.nombre : 'Admin';
+    const res = await fetch('/api/contactos/bulk-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, accion: 'asignar_etiqueta', valor: etiqueta, autor })
+    });
+
+    if (res.ok) {
+      closeModal('modalAsignarEtiquetaMasivo');
+      deseleccionarTodosContactos();
+      loadAllData();
+      alert(`Se ha asignado la etiqueta "${etiqueta}" a ${ids.length} contactos.`);
+    }
+  } catch (err) {
+    alert('Error al asignar etiqueta');
+  }
+}
+
+// Exportar Seleccionados (Prioridad #8 y #10)
+function exportSelectedContactos(format = 'csv') {
+  const selected = getSelectedContactosList();
+  if (selected.length === 0) {
+    alert('Por favor selecciona al menos un contacto para exportar.');
+    return;
+  }
+
+  const filename = `CRMComercial_Contactos_Seleccionados_${new Date().toISOString().split('T')[0]}.${format}`;
+
+  if (format === 'xlsx' && typeof XLSX !== 'undefined') {
+    const ws = XLSX.utils.json_to_sheet(selected);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Contactos');
+    XLSX.writeFile(wb, filename);
+  } else {
+    // CSV con UTF-8 BOM (\uFEFF)
+    const keys = Object.keys(selected[0]);
+    const csvContent =
+      '\uFEFF' +
+      [
+        keys.join(','),
+        ...selected.map((row) =>
+          keys
+            .map((k) => {
+              let val = row[k] === null || row[k] === undefined ? '' : String(row[k]);
+              return `"${val.replace(/"/g, '""')}"`;
+            })
+            .join(',')
+        )
+      ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
+
+function appendTagToInput(tag) {
+  const input = document.getElementById('contactoEtiquetas');
+  if (!input) return;
+
+  const current = input.value.trim();
+  if (!current) {
+    input.value = tag;
+  } else {
+    const parts = current.split(',').map((p) => p.trim());
+    if (!parts.includes(tag)) {
+      input.value = current + ', ' + tag;
+    }
+  }
+}
+
+// --------------------------------------------------------------------------
+// MÓDULO DE RELACIONES COMPLETAS (Prioridad #4: Empresa <-> Contacto <-> Oportunidad)
+// --------------------------------------------------------------------------
+
+// Ficha Detallada de Empresa
+function openEmpresaDetalle(empresaId, fallbackNombre = '') {
+  let e = (state.db.empresas || []).find((item) => item.id === Number(empresaId));
+  if (!e && fallbackNombre) {
+    e = (state.db.empresas || []).find((item) => (item.razon_social || '').toLowerCase() === fallbackNombre.toLowerCase());
+  }
+
+  if (!e) {
+    alert('Empresa no encontrada.');
+    return;
+  }
+
+  // Encabezado
+  document.getElementById('detalleEmpresaTitulo').textContent = e.razon_social;
+  document.getElementById('detalleEmpresaBadgeRnc').textContent = 'RNC: ' + (e.rnc || 'No asignado');
+  document.getElementById('detalleEmpresaBadgeEstado').textContent = e.estado_comercial || 'Prospecto';
+
+  // Tab 1: Ficha General
+  document.getElementById('detEmpRazon').textContent = e.razon_social;
+  document.getElementById('detEmpComercial').textContent = e.nombre_comercial || '-';
+  document.getElementById('detEmpRnc').textContent = e.rnc;
+  document.getElementById('detEmpIndustria').textContent = e.industria || 'General';
+  document.getElementById('detEmpUbicacion').textContent = `${e.ciudad || 'Santo Domingo'}, ${e.provincia || 'Distrito Nacional'}`;
+  document.getElementById('detEmpDireccion').textContent = e.direccion || 'No especificada';
+  document.getElementById('detEmpTelefono').textContent = e.telefono || '-';
+  document.getElementById('detEmpCorreo').textContent = e.correo || '-';
+  document.getElementById('detEmpWeb').textContent = e.sitio_web || '-';
+  document.getElementById('detEmpEmpleados').textContent = e.cantidad_empleados || '25-50';
+  document.getElementById('detEmpResponsable').textContent = e.responsable_comercial || 'Yenifer Reina';
+  document.getElementById('detEmpRegistro').textContent = e.fecha_creacion || 'Reciente';
+
+  // Tab 2: Contactos Asociados (Prioridad #4)
+  const contactosRel = (state.db.contactos || []).filter(
+    (c) => c.empresa_id === e.id || (c.empresa && c.empresa.toLowerCase() === e.razon_social.toLowerCase())
+  );
+  document.getElementById('countEmpresaContactos').textContent = contactosRel.length;
+
+  const tableContactos = document.getElementById('detEmpresaContactosTable');
+  if (tableContactos) {
+    if (contactosRel.length === 0) {
+      tableContactos.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">No hay contactos asociados a esta empresa aún.</td></tr>`;
+    } else {
+      tableContactos.innerHTML = contactosRel
+        .map((c) => {
+          const cleanPhone = (c.whatsapp || c.telefono || '').replace(/[^0-9]/g, '');
+          const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
+          return `
+            <tr>
+              <td>
+                <strong>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido || '')}</strong>
+                <div class="text-muted" style="font-size:11px;">${escapeHtml(c.cargo || 'Decisor')}</div>
+              </td>
+              <td>
+                <div>${escapeHtml(c.telefono || '-')}</div>
+                ${cleanPhone ? `<a href="${waUrl}" target="_blank" style="color:#22c55e; font-size:11px; text-decoration:none;">WhatsApp</a>` : ''}
+              </td>
+              <td>${escapeHtml(c.correo || '-')}</td>
+              <td><span class="badge" style="background:#1e3a8a; font-size:11px;">${escapeHtml(c.estado_comercial || 'Prospecto')}</span></td>
+              <td>
+                <button class="btn btn-outline-primary btn-sm" onclick="closeModal('modalDetalleEmpresa'); openContactoDetalle(${c.id})">Ver Ficha</button>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+  }
+
+  // Tab 3: Oportunidades Asociadas (Prioridad #4)
+  const oportunidadesRel = (state.db.prospectos || []).filter(
+    (p) => p.empresa_id === e.id || (p.empresa && p.empresa.toLowerCase() === e.razon_social.toLowerCase())
+  );
+  document.getElementById('countEmpresaOportunidades').textContent = oportunidadesRel.length;
+
+  const tableOportunidades = document.getElementById('detEmpresaOportunidadesTable');
+  if (tableOportunidades) {
+    if (oportunidadesRel.length === 0) {
+      tableOportunidades.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">No hay oportunidades comerciales registradas para esta empresa.</td></tr>`;
+    } else {
+      tableOportunidades.innerHTML = oportunidadesRel
+        .map((p) => `
+          <tr>
+            <td><strong>${escapeHtml(p.empresa)}</strong></td>
+            <td><span class="badge" style="background:${p.etapa === 'Ganado' ? '#10b981' : p.etapa === 'Perdido' ? '#ef4444' : '#3b82f6'}; font-size:11px;">${escapeHtml(p.etapa)}</span></td>
+            <td>Plan ${escapeHtml(p.plan_seleccionado || 'PYME')}</td>
+            <td style="color:#34d399; font-weight:700;">US$ ${Number(p.costo_mensual || 0).toFixed(2)}/mes</td>
+            <td style="color:#60a5fa; font-weight:700;">US$ ${Number(p.valor_estimado || 0).toFixed(2)}</td>
+            <td>${escapeHtml(p.contacto_principal || '-')}</td>
+          </tr>
+        `)
+        .join('');
+    }
+  }
+
+  // Tab 4: Seguimientos de la Empresa
+  const seguimientosRel = (state.db.seguimientos || []).filter(
+    (s) => (s.empresa && s.empresa.toLowerCase().includes(e.razon_social.toLowerCase()))
+  );
+  document.getElementById('countEmpresaSeguimientos').textContent = seguimientosRel.length;
+  const listSeg = document.getElementById('detEmpresaSeguimientosList');
+  if (listSeg) {
+    if (seguimientosRel.length === 0) {
+      listSeg.innerHTML = `<p style="color:var(--text-muted); font-size:12px; padding:12px;">No hay seguimientos registrados para esta empresa.</p>`;
+    } else {
+      listSeg.innerHTML = seguimientosRel.map((s) => `
+        <div style="padding:10px; border-bottom:1px solid var(--border-color); font-size:12px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <strong>${escapeHtml(s.canal)} - ${escapeHtml(s.resultado)}</strong>
+            <span class="text-muted">${escapeHtml(s.fecha)}</span>
+          </div>
+          <p style="margin:0; color:var(--text-muted);">${escapeHtml(s.observaciones)}</p>
+          ${s.proxima_accion ? `<div style="font-size:11px; color:#60a5fa; margin-top:4px;">Próxima acción: ${escapeHtml(s.proxima_accion)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+  }
+
+  // Tab 5: Auditoría y Trazabilidad
+  const auditRel = (state.db.auditoria || []).filter(
+    (a) => (a.registro_afectado && a.registro_afectado.toLowerCase().includes(e.razon_social.toLowerCase()))
+  );
+  const listAudit = document.getElementById('detEmpresaAuditoriaList');
+  if (listAudit) {
+    if (auditRel.length === 0) {
+      listAudit.innerHTML = `<p style="color:var(--text-muted); font-size:12px; padding:12px;">No hay registros de auditoría directa para esta entidad.</p>`;
+    } else {
+      listAudit.innerHTML = auditRel.map((a) => `
+        <div style="padding:8px 0; border-bottom:1px solid var(--border-color); font-size:11px;">
+          <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
+            <strong>${escapeHtml(a.usuario)} - ${escapeHtml(a.accion)}</strong>
+            <span>${escapeHtml(a.fecha)} ${escapeHtml(a.hora)}</span>
+          </div>
+          <div>${escapeHtml(a.detalles || a.registro_afectado)}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Botón Editar
+  const btnEdit = document.getElementById('btnEditarDesdeDetalleEmpresa');
+  if (btnEdit) {
+    btnEdit.onclick = () => {
+      closeModal('modalDetalleEmpresa');
+      editEmpresa(e.id);
+    };
+  }
+
+  switchDetalleEmpresaTab('tabEmpresaInfo');
+  openModal('modalDetalleEmpresa');
+}
+
+function switchDetalleEmpresaTab(tabId) {
+  document.querySelectorAll('#modalDetalleEmpresa .tab-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('onclick').includes(tabId));
+  });
+
+  document.querySelectorAll('#modalDetalleEmpresa .tab-content').forEach((tc) => {
+    tc.classList.toggle('active', tc.id === tabId);
+  });
+}
+
+// Ficha Detallada de Contacto (Prioridad #4: Relación Contacto -> Empresa -> Oportunidades -> Historial)
+function openContactoDetalle(contactoId) {
+  const c = (state.db.contactos || []).find((item) => item.id === Number(contactoId));
+  if (!c) {
+    alert('Contacto no encontrado.');
+    return;
+  }
+
+  // Encabezado
+  document.getElementById('detalleContactoTitulo').textContent = `${c.nombre} ${c.apellido || ''}`;
+
+  // Botón enlace a Empresa
+  const empLink = document.getElementById('detalleContactoEmpresaLink');
+  if (empLink) {
+    empLink.textContent = `🏢 Ver Empresa: ${c.empresa || 'Asociada'}`;
+    empLink.onclick = () => {
+      closeModal('modalDetalleContacto');
+      openEmpresaDetalle(c.empresa_id || 0, c.empresa);
+    };
+  }
+
+  document.getElementById('detContNombre').textContent = `${c.nombre} ${c.apellido || ''}`;
+  document.getElementById('detContCargo').textContent = c.cargo || 'Decisor Comercial';
+  document.getElementById('detContEmpresa').textContent = c.empresa || 'Sin empresa';
+  document.getElementById('detContEstado').textContent = c.estado_comercial || 'Prospecto';
+  document.getElementById('detContTelefono').textContent = c.telefono || '-';
+  document.getElementById('detContWhatsapp').textContent = c.whatsapp || '-';
+  document.getElementById('detContCorreo').textContent = c.correo || '-';
+  document.getElementById('detContResponsable').textContent = c.responsable_comercial || 'Yenifer Reina';
+  document.getElementById('detContProducto').textContent = c.producto_interes || 'Facturación Electrónica';
+  document.getElementById('detContModulo').textContent = c.modulo_principal || 'Ventas';
+  document.getElementById('detContUbicacion').textContent = `${c.ciudad || 'Santo Domingo'}, ${c.provincia || 'Distrito Nacional'}${c.direccion ? ' - ' + c.direccion : ''}`;
+  document.getElementById('detContProximoSeg').textContent = c.fecha_proximo_seguimiento || 'No programado';
+  document.getElementById('detContObservaciones').textContent = c.observaciones_comerciales || 'Sin observaciones comerciales.';
+  document.getElementById('detContNotas').textContent = c.notas || 'Sin notas internas.';
+
+  // Etiquetas
+  const tagsContainer = document.getElementById('detContEtiquetas');
+  if (tagsContainer) {
+    if (c.etiquetas) {
+      tagsContainer.innerHTML = c.etiquetas.split(',').map((t) => `<span class="badge" style="background:#1e3a8a; padding:2px 8px; border-radius:4px; font-size:11px;">${escapeHtml(t.trim())}</span>`).join(' ');
+    } else {
+      tagsContainer.innerHTML = `<span class="text-muted" style="font-size:11px;">Sin etiquetas</span>`;
+    }
+  }
+
+  // Oportunidades Relacionadas con este contacto o su empresa
+  const opRel = (state.db.prospectos || []).filter(
+    (p) => (p.contacto_principal && p.contacto_principal.toLowerCase().includes(c.nombre.toLowerCase())) ||
+           (c.empresa && p.empresa && p.empresa.toLowerCase() === c.empresa.toLowerCase())
+  );
+  const listOp = document.getElementById('detContOportunidadesList');
+  if (listOp) {
+    if (opRel.length === 0) {
+      listOp.innerHTML = `<p style="color:var(--text-muted); font-size:12px;">No hay oportunidades registradas para este contacto.</p>`;
+    } else {
+      listOp.innerHTML = opRel.map((p) => `
+        <div style="padding:8px 0; border-bottom:1px solid var(--border-color); font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <strong>${escapeHtml(p.empresa)}</strong>
+            <span class="badge" style="margin-left:6px; font-size:10px; background:#1e3a8a;">${escapeHtml(p.etapa)}</span>
+            <div class="text-muted" style="font-size:11px;">Plan ${escapeHtml(p.plan_seleccionado || 'PYME')}</div>
+          </div>
+          <div style="text-align:right;">
+            <strong style="color:#34d399;">US$ ${Number(p.costo_mensual || 0).toFixed(2)}/mes</strong>
+            <div style="font-size:11px; color:#60a5fa;">Total Anual: US$ ${Number(p.valor_estimado || 0).toFixed(2)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Seguimientos relacionados
+  const segRel = (state.db.seguimientos || []).filter(
+    (s) => (c.empresa && s.empresa && s.empresa.toLowerCase().includes(c.empresa.toLowerCase()))
+  );
+  const listSeg = document.getElementById('detContSeguimientosList');
+  if (listSeg) {
+    if (segRel.length === 0) {
+      listSeg.innerHTML = `<p style="color:var(--text-muted); font-size:12px;">No hay seguimientos registrados para este contacto.</p>`;
+    } else {
+      listSeg.innerHTML = segRel.map((s) => `
+        <div style="padding:8px 0; border-bottom:1px solid var(--border-color); font-size:11px;">
+          <div style="display:flex; justify-content:space-between;">
+            <strong>${escapeHtml(s.canal)} - ${escapeHtml(s.resultado)}</strong>
+            <span class="text-muted">${escapeHtml(s.fecha)}</span>
+          </div>
+          <p style="margin:2px 0 0 0; color:var(--text-muted);">${escapeHtml(s.observaciones)}</p>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Botón Editar
+  const btnEdit = document.getElementById('btnEditarDesdeDetalleContacto');
+  if (btnEdit) {
+    btnEdit.onclick = () => {
+      closeModal('modalDetalleContacto');
+      editContacto(c.id);
+    };
+  }
+
+  openModal('modalDetalleContacto');
 }
 
 // --------------------------------------------------------------------------
 // MÓDULO 4: PIPELINE COMERCIAL, CATÁLOGO DE PLANES & CÁLCULO DE COSTOS
 // --------------------------------------------------------------------------
+
+// Manejador del cambio de Empresa en Modal de Oportunidad (Prioridad #5: Selección y Auto-completado)
+function handleProsEmpresaChange() {
+  const empSelect = document.getElementById('prosEmpresaSelect');
+  const contactoSelect = document.getElementById('prosContactoSelect');
+  if (!empSelect || !contactoSelect) return;
+
+  const empresaId = Number(empSelect.value);
+  const empresa = (state.db.empresas || []).find((e) => e.id === empresaId);
+
+  if (!empresa) {
+    contactoSelect.innerHTML = '<option value="">-- Primero selecciona una empresa --</option>';
+    return;
+  }
+
+  // Pre-completar teléfono, correo y responsable de la empresa
+  if (document.getElementById('prosTelefono')) document.getElementById('prosTelefono').value = empresa.telefono || '';
+  if (document.getElementById('prosCorreo')) document.getElementById('prosCorreo').value = empresa.correo || '';
+  if (document.getElementById('prosResponsable') && empresa.responsable_comercial) {
+    document.getElementById('prosResponsable').value = empresa.responsable_comercial;
+  }
+
+  // Cargar contactos asociados a esta empresa
+  const contactos = (state.db.contactos || []).filter(
+    (c) => c.empresa_id === empresa.id || (c.empresa && c.empresa.toLowerCase() === empresa.razon_social.toLowerCase())
+  );
+
+  if (contactos.length === 0) {
+    contactoSelect.innerHTML = '<option value="">-- Sin contactos específicos (Se usará contacto de empresa) --</option>';
+  } else {
+    contactoSelect.innerHTML = '<option value="">-- Seleccionar Contacto Principal --</option>' +
+      contactos.map((c) => `<option value="${c.id}">${escapeHtml(c.nombre)} ${escapeHtml(c.apellido || '')} (${escapeHtml(c.cargo || 'Contacto')})</option>`).join('');
+
+    // Auto-seleccionar el primer contacto principal
+    contactoSelect.selectedIndex = 1;
+    handleProsContactoChange();
+  }
+}
+
+// Manejador del cambio de Contacto Principal en Modal de Oportunidad (Prioridad #5)
+function handleProsContactoChange() {
+  const contactoSelect = document.getElementById('prosContactoSelect');
+  if (!contactoSelect || !contactoSelect.value) return;
+
+  const contactoId = Number(contactoSelect.value);
+  const contacto = (state.db.contactos || []).find((c) => c.id === contactoId);
+
+  if (!contacto) return;
+
+  // Auto-completar datos del contacto sin tener que escribirlos manualmente
+  if (contacto.telefono && document.getElementById('prosTelefono')) {
+    document.getElementById('prosTelefono').value = contacto.telefono;
+  }
+  if (contacto.whatsapp && document.getElementById('prosWhatsapp')) {
+    document.getElementById('prosWhatsapp').value = contacto.whatsapp;
+  }
+  if (contacto.correo && document.getElementById('prosCorreo')) {
+    document.getElementById('prosCorreo').value = contacto.correo;
+  }
+  if (contacto.responsable_comercial && document.getElementById('prosResponsable')) {
+    document.getElementById('prosResponsable').value = contacto.responsable_comercial;
+  }
+}
 
 // Catálogo Oficial de Planes IB SYSTEM (Valores Reales en USD - No montos ficticios)
 const CATALOGO_PLANES = {
@@ -739,14 +1563,27 @@ async function handleSaveProspecto(e) {
   const modulosSelected = Array.from(document.querySelectorAll('.module-check:checked')).map((c) => c.value);
   const pricing = calculatePricing();
 
+  const empSelect = document.getElementById('prosEmpresaSelect');
+  const contactoSelect = document.getElementById('prosContactoSelect');
+
+  const empresaId = empSelect && empSelect.value ? Number(empSelect.value) : null;
+  const empresaNombre = empSelect && empSelect.selectedIndex >= 0 ? empSelect.options[empSelect.selectedIndex].text.replace(/\s*\(.*?\)\s*$/, '').trim() : '';
+
+  let contactoNombre = '';
+  if (contactoSelect && contactoSelect.selectedIndex >= 0 && contactoSelect.value) {
+    contactoNombre = contactoSelect.options[contactoSelect.selectedIndex].text.replace(/\s*\(.*?\)\s*$/, '').trim();
+  }
+
   const payload = {
-    empresa: document.getElementById('prosEmpresa').value.trim(),
-    contacto_principal: document.getElementById('prosContacto').value.trim(),
-    telefono: document.getElementById('prosTelefono').value.trim(),
-    correo: document.getElementById('prosCorreo').value.trim(),
-    etapa: document.getElementById('prosEtapa').value,
-    responsable_comercial: document.getElementById('prosResponsable').value,
-    plan_seleccionado: document.getElementById('prosPlan').value,
+    empresa_id: empresaId,
+    empresa: empresaNombre,
+    contacto_principal: contactoNombre || 'Contacto General',
+    telefono: document.getElementById('prosTelefono')?.value.trim() || '',
+    whatsapp: document.getElementById('prosWhatsapp')?.value.trim() || '',
+    correo: document.getElementById('prosCorreo')?.value.trim() || '',
+    etapa: document.getElementById('prosEtapa')?.value || 'Contacto',
+    responsable_comercial: document.getElementById('prosResponsable')?.value || 'Yenifer Reina',
+    plan_seleccionado: document.getElementById('prosPlan')?.value || 'PYME',
     canal_captacion: document.getElementById('prosCanal')?.value || 'Venta Directa',
     modulos_adicionales: modulosSelected,
     cantidad_usuarios: pricing.cantidadUsuarios,
@@ -1443,27 +2280,61 @@ function escapeHtml(str) {
 }
 
 // --------------------------------------------------------------------------
-// MÓDULO 11: EXPORTACIÓN
+// MÓDULO 11: EXPORTACIÓN (Prioridad #10: Respetar Filtros y Codificación UTF-8)
 // --------------------------------------------------------------------------
-function exportData(moduleName) {
+function exportData(moduleName, format = 'csv') {
   let data = [];
-  let filename = `CRMComercial_${moduleName}_${new Date().toISOString().split('T')[0]}.csv`;
+  const today = new Date().toISOString().split('T')[0];
+  let filename = `CRMComercial_${moduleName}_${today}.${format}`;
 
-  if (moduleName === 'empresas') data = state.db.empresas || [];
-  else if (moduleName === 'contactos') data = state.db.contactos || [];
-  else if (moduleName === 'prospectos') data = state.db.prospectos || [];
-  else if (moduleName === 'auditoria') data = state.db.auditoria || [];
+  if (moduleName === 'empresas') {
+    const query = (document.getElementById('filterEmpresas')?.value || '').toLowerCase().trim();
+    if (query) {
+      data = (state.db.empresas || []).filter(
+        (e) =>
+          e.razon_social.toLowerCase().includes(query) ||
+          (e.rnc || '').toLowerCase().includes(query) ||
+          (e.industria || '').toLowerCase().includes(query)
+      );
+    } else {
+      data = state.db.empresas || [];
+    }
+  } else if (moduleName === 'contactos') {
+    // Respetar filtros aplicados (Prioridad #10)
+    data = state.currentFilteredContactos && state.currentFilteredContactos.length > 0
+      ? state.currentFilteredContactos
+      : (state.db.contactos || []);
+  } else if (moduleName === 'prospectos') {
+    data = state.db.prospectos || [];
+  } else if (moduleName === 'auditoria') {
+    const query = (document.getElementById('filterAuditoria')?.value || '').toLowerCase().trim();
+    if (query) {
+      data = (state.db.auditoria || []).filter(
+        (a) =>
+          a.usuario.toLowerCase().includes(query) ||
+          a.accion.toLowerCase().includes(query) ||
+          a.modulo.toLowerCase().includes(query) ||
+          (a.registro_afectado || '').toLowerCase().includes(query)
+      );
+    } else {
+      data = state.db.auditoria || [];
+    }
+  }
 
   if (data.length === 0) {
-    alert('No hay registros para exportar.');
+    alert('No hay registros disponibles para exportar con los filtros actuales.');
     return;
   }
 
-  // Generar CSV
-  const keys = Object.keys(data[0]);
-  const csvContent =
-    'data:text/csv;charset=utf-8,\uFEFF' +
-    [
+  if (format === 'xlsx' && typeof XLSX !== 'undefined') {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, moduleName.toUpperCase());
+    XLSX.writeFile(wb, filename);
+  } else {
+    // Generar CSV con marca BOM UTF-8 (\uFEFF) para visualización correcta de tildes y caracteres especiales en Excel (Prioridad #11)
+    const keys = Object.keys(data[0]);
+    const csvRows = [
       keys.join(','),
       ...data.map((row) =>
         keys
@@ -1473,15 +2344,16 @@ function exportData(moduleName) {
           })
           .join(',')
       )
-    ].join('\r\n');
+    ];
 
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+    const blob = new Blob(['\uFEFF' + csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 }
 
 // --------------------------------------------------------------------------

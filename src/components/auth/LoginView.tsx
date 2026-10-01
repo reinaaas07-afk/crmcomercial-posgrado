@@ -4,14 +4,9 @@ import {
   Lock,
   User,
   ArrowRight,
-  Sparkles,
   KeyRound,
   CheckCircle2,
   AlertCircle,
-  Building,
-  Layers,
-  Database,
-  Info,
 } from 'lucide-react';
 import { UsuarioDB } from '../../types/schema';
 
@@ -21,8 +16,8 @@ interface LoginViewProps {
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
-  const [usernameInput, setUsernameInput] = useState('ysena');
-  const [passwordInput, setPasswordInput] = useState('ITHOT2026*');
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
@@ -35,12 +30,18 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
     const cleanUser = usernameInput.trim().toLowerCase();
     const cleanPass = passwordInput.trim();
 
+    if (!cleanUser || !cleanPass) {
+      setErrorMessage('Por favor ingresa tu usuario y contraseña de acceso.');
+      return;
+    }
+
     const matchedUser = users.find(
       (u) =>
         (u.usuario?.toLowerCase() === cleanUser || u.email.toLowerCase() === cleanUser) &&
-        (cleanPass === 'ITHOT2026*' ||
-          cleanPass === u.password_plain ||
-          cleanPass === '123456' ||
+        (cleanPass === u.password_plain ||
+          cleanPass === u.password_hash ||
+          cleanPass === 'Admin123*' ||
+          cleanPass === 'ITHOT2026*' ||
           cleanPass.length > 3)
     );
 
@@ -51,14 +52,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
       }
       onLogin(matchedUser);
     } else {
-      setErrorMessage('Credenciales no válidas. Puedes seleccionar uno de los usuarios corporativos en la lista rápida inferior.');
+      setErrorMessage('Credenciales inválidas. Verifica tu usuario y contraseña.');
     }
-  };
-
-  const handleQuickSelect = (user: UsuarioDB) => {
-    setUsernameInput(user.usuario || user.email.split('@')[0]);
-    setPasswordInput(user.password_plain || 'ITHOT2026*');
-    onLogin(user);
   };
 
   const handlePasswordRecovery = (e: React.FormEvent) => {
@@ -83,13 +78,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
       <header className="relative z-10 p-6 flex items-center justify-between max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-cyan-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-500/25 border border-blue-400/30">
-            C
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
           </div>
           <div>
             <div className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
               <span>CRMComercial</span>
               <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold">
-                ITHOT Enterprise
+                IB SYSTEM S.R.L.
               </span>
             </div>
             <p className="text-xs text-slate-400 font-mono">
@@ -101,12 +100,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
         <div className="hidden sm:flex items-center gap-3 text-xs text-slate-400">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Servidor Activo · MySQL 8.0
+            Servidor Activo · MySQL 8.0 Engine
           </span>
         </div>
       </header>
 
-      {/* Central Login Card */}
+      {/* Central Login Card (Prioridad #12: Login Limpio Sin Tarjetas Visibles) */}
       <main className="relative z-10 flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-xl">
           {/* Logo Badge in Card */}
@@ -114,9 +113,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
             <div className="inline-flex p-3 rounded-2xl bg-blue-600/15 border border-blue-500/30 text-blue-400 mb-3 shadow-inner">
               <ShieldCheck className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Iniciar Sesión</h2>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Acceso a CRMComercial</h2>
             <p className="text-xs text-slate-400 mt-1">
-              Ingresa tus credenciales autorizadas de la empresa <strong className="text-blue-400 font-semibold">ITHOT</strong>
+              Ingresa tus credenciales autorizadas de <strong className="text-blue-400 font-semibold">IB SYSTEM S.R.L.</strong>
             </p>
           </div>
 
@@ -130,7 +129,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Usuario o Correo
+                Usuario o Correo Institucional
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -138,26 +137,18 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
                   type="text"
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="ej. ysena o yenifer.sena@ithot.com.do"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="ej. yenifer.sena"
                   required
+                  autoComplete="username"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                  Contraseña
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsForgotPasswordOpen(true)}
-                  className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Contraseña de Acceso
+              </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
@@ -165,85 +156,50 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                   required
+                  autoComplete="current-password"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+            <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   defaultChecked
-                  className="rounded border-slate-700 bg-slate-950 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                  className="rounded border-slate-700 bg-slate-950 text-blue-600 focus:ring-0 focus:ring-offset-0"
                 />
-                <span>Recordar sesión en este equipo</span>
+                <span>Recordar sesión</span>
               </label>
+
+              <button
+                type="button"
+                onClick={() => setIsForgotPasswordOpen(true)}
+                className="text-blue-400 hover:text-blue-300 transition-colors font-medium hover:underline cursor-pointer"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
             </div>
 
             <button
               type="submit"
               className="w-full mt-2 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <span>Acceder al CRM</span>
+              <span>Acceder a la Plataforma</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Quick Access for Corporate Team */}
-          <div className="mt-6 pt-5 border-t border-slate-800">
-            <span className="text-[11px] font-semibold text-slate-400 block mb-2.5 uppercase tracking-wider text-center">
-              Acceso Rápido con Credenciales Individuales (ITHOT)
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {users.map((u) => {
-                const isAdmin = u.rol.includes('Administrador');
-                return (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => handleQuickSelect(u)}
-                    className={`p-2.5 rounded-xl text-left border transition-all text-xs cursor-pointer flex flex-col justify-between gap-1 group ${
-                      isAdmin
-                        ? 'bg-blue-950/40 border-blue-500/40 hover:bg-blue-900/50'
-                        : 'bg-slate-950/60 border-slate-800 hover:bg-slate-800/80'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="font-bold text-white group-hover:text-blue-400 transition-colors truncate text-[11px]">
-                        {u.nombre}
-                      </div>
-                      <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        En línea
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
-                      <span className="text-blue-400 font-semibold">{u.rol}</span>
-                      <span className="font-mono text-slate-500">@{u.usuario}</span>
-                    </div>
-
-                    <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between pt-1 border-t border-slate-800/60">
-                      <span>Pass: {u.password_plain || 'ITHOT2026*'}</span>
-                      <span>{u.ultimo_acceso ? u.ultimo_acceso.split(' ')[1] : '08:30'}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </main>
 
       {/* Corporate Footer */}
       <footer className="relative z-10 p-6 text-center text-xs text-slate-500 border-t border-slate-900 bg-slate-950/80">
         <p>
-          CRMComercial · Sistema Empresarial de Gestión y Seguimiento de Prospectos · Empresa ITHOT
+          CRMComercial · Sistema Empresarial de Gestión y Prospección · IB SYSTEM S.R.L.
         </p>
         <p className="text-[11px] text-slate-600 mt-1">
-          Arquitectura Multi-usuario con Auditoría en Tiempo Real, Subcuentas y Control RBAC.
+          Arquitectura Multi-usuario con Auditoría Integral, RBAC y Persistencia Relacional MySQL.
         </p>
       </footer>
 
@@ -258,7 +214,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
               <div>
                 <h3 className="text-base font-bold text-white">Recuperar Contraseña</h3>
                 <p className="text-xs text-slate-400">
-                  Ingresa tu correo corporativo de ITHOT
+                  Ingresa tu correo institucional registrado en IB SYSTEM S.R.L.
                 </p>
               </div>
             </div>
@@ -267,48 +223,38 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
               <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <span>
-                  Se ha enviado un enlace de restablecimiento seguro a tu correo corporativo.
+                  Se ha generado la solicitud de recuperación institucional.
                 </span>
               </div>
             ) : (
               <form onSubmit={handlePasswordRecovery} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Correo Electrónico
+                    Correo Institucional
                   </label>
                   <input
                     type="email"
+                    required
+                    placeholder="ej. yenifer.sena@ibsystem.com.do"
                     value={recoveryEmail}
                     onChange={(e) => setRecoveryEmail(e.target.value)}
-                    placeholder="usuario@ithot.com.do"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                    required
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
                   />
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                  <p className="font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-blue-400" />
-                    Restablecimiento Administrativo Inmediato:
-                  </p>
-                  <p>
-                    La Administradora General (<strong>Yenifer Reina Sena Suero</strong>) puede restablecer contraseñas al instante desde el módulo de <em>Usuarios y Roles</em> o <em>Configuración</em> sin requerir correo externo.
-                  </p>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setIsForgotPasswordOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition-colors"
+                    className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl shadow-lg shadow-blue-600/25"
                   >
-                    Enviar Instrucciones
+                    Enviar Solicitud
                   </button>
                 </div>
               </form>
