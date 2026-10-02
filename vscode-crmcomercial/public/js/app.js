@@ -635,7 +635,7 @@ function renderContactosTable() {
         </td>
         <td>${escapeHtml(c.responsable_comercial || 'Yenifer Reina')}</td>
         <td>
-          <button class="btn btn-outline-primary btn-sm" onclick="openContactoDetalle(${c.id})" title="Ver Ficha Completa">&#128065; Ficha</button>
+          <button class="btn btn-outline-primary btn-sm" onclick="openContactoDetalle(${c.id})" title="Ver Ficha Completa">Ver Ficha</button>
           <button class="btn btn-outline-success btn-sm" onclick="crearOportunidadDesdeContacto(${c.id})" title="Crear Oportunidad desde Contacto">+ Op</button>
           <button class="btn btn-outline btn-sm" onclick="editContacto(${c.id})">Editar</button>
           <button class="btn btn-outline-danger btn-sm" onclick="deleteContacto(${c.id})">Eliminar</button>
@@ -1250,7 +1250,7 @@ function openContactoDetalle(contactoId) {
   // Botón enlace a Empresa
   const empLink = document.getElementById('detalleContactoEmpresaLink');
   if (empLink) {
-    empLink.textContent = `🏢 Ver Empresa: ${c.empresa || 'Asociada'}`;
+    empLink.textContent = `Ver Empresa: ${c.empresa || 'Asociada'}`;
     empLink.onclick = () => {
       closeModal('modalDetalleContacto');
       openEmpresaDetalle(c.empresa_id || 0, c.empresa);
@@ -2557,7 +2557,7 @@ function exportPDF(moduleName) {
   }
   const titleEl = document.getElementById('pdfModalTitle');
   if (titleEl) {
-    titleEl.textContent = `🖨️ ${title} (PDF)`;
+    titleEl.textContent = `${title} (PDF)`;
   }
 
   openModal('modalPDFPreview');

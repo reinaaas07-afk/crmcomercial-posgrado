@@ -130,8 +130,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
+        {/* Form Body con Scroll Interno */}
+        <form id="formCompany" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Razón Social */}
             <div className="space-y-1">
@@ -327,25 +327,26 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               />
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-medium transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors shadow-lg shadow-blue-600/25"
-            >
-              <Check className="w-4 h-4" />
-              <span>{companyToEdit ? 'Guardar Cambios' : 'Registrar Empresa'}</span>
-            </button>
-          </div>
         </form>
+
+        {/* Action Buttons - Siempre Accesibles y Visibles */}
+        <div className="flex items-center justify-between gap-3 p-4 px-6 border-t border-slate-800 bg-slate-950/80 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-medium transition-colors text-xs"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="formCompany"
+            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors shadow-lg shadow-blue-600/25 text-xs"
+          >
+            <Check className="w-4 h-4" />
+            <span>{companyToEdit ? 'Guardar Cambios' : 'Registrar Empresa'}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

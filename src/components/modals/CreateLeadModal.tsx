@@ -192,18 +192,19 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-7 text-slate-100 max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl text-slate-100 max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        {/* Header - Siempre Visible */}
+        <div className="flex items-center justify-between p-5 sm:px-7 border-b border-slate-800 shrink-0 bg-slate-950/70">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                 {leadToEdit ? 'Editar Oportunidad Comercial' : 'Registrar Nueva Oportunidad / Prospecto'}
               </h2>
               <p className="text-xs text-slate-400">
@@ -219,7 +220,8 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+        {/* Scrollable Form Body */}
+        <form id="formLead" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-5">
           {/* Persona y Empresa */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
@@ -480,24 +482,26 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
               className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 resize-none h-16"
             />
           </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-750 rounded-lg transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-sm cursor-pointer"
-            >
-              {leadToEdit ? 'Guardar Cambios' : 'Registrar Oportunidad'}
-            </button>
-          </div>
         </form>
+
+        {/* Footer Actions - Siempre Accesibles y Visibles */}
+        <div className="flex items-center justify-between gap-3 p-4 px-6 sm:px-7 border-t border-slate-800 bg-slate-950/80 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="formLead"
+            className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>{leadToEdit ? 'Guardar Cambios' : 'Registrar Oportunidad'}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

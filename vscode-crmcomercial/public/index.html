@@ -178,7 +178,7 @@
 
           <!-- ACCESOS RÁPIDOS EN DASHBOARD (Prioridad #13) -->
           <div class="quick-actions-bar">
-            <span class="quick-actions-title">&#9889; Accesos Rápidos:</span>
+            <span class="quick-actions-title">Accesos Rápidos:</span>
             <button type="button" class="quick-btn primary" onclick="openModal('modalEmpresa')">
               <span>+ Nueva Empresa</span>
             </button>
@@ -189,7 +189,7 @@
               <span>+ Nueva Oportunidad</span>
             </button>
             <button type="button" class="quick-btn" onclick="switchView('importacion')">
-              <span>&#8681; Importar Excel</span>
+              <span>Importar Excel</span>
             </button>
           </div>
 
@@ -279,7 +279,7 @@
               <p class="text-muted">Gestión integral de decisores, empresas asociadas, seguimiento comercial y acciones masivas.</p>
             </div>
             <div style="display:flex; gap:8px;">
-              <button class="btn btn-outline" onclick="openModal('modalImportacionRapida')">&#8681; Importar</button>
+              <button class="btn btn-outline" onclick="openModal('modalImportacionRapida')">Importar</button>
               <button class="btn btn-primary" onclick="openModal('modalContacto')">+ Nuevo Contacto</button>
             </div>
           </div>
@@ -291,20 +291,20 @@
               <span id="selectedCountText">contactos seleccionados</span>
             </div>
             <div class="mass-actions-buttons">
-              <button class="btn btn-sm btn-outline-light" onclick="openModalCorreoMasivo()">&#9993; Correo Masivo</button>
-              <button class="btn btn-sm btn-outline-success" onclick="openModalWhatsappMasivo()">&#128172; WhatsApp Masivo</button>
-              <button class="btn btn-sm btn-outline-light" onclick="exportSelectedContactos('xlsx')">&#128190; Exportar Excel</button>
-              <button class="btn btn-sm btn-outline-light" onclick="exportSelectedContactos('csv')">&#128196; Exportar CSV</button>
-              <button class="btn btn-sm btn-outline-light" onclick="openModalAsignarResponsableMasivo()">&#128100; Asignar Responsable</button>
-              <button class="btn btn-sm btn-outline-light" onclick="openModalAsignarEtiquetaMasivo()">&#127991; Asignar Etiqueta</button>
-              <button class="btn btn-sm btn-text-danger" onclick="deseleccionarTodosContactos()">&#10005; Deseleccionar</button>
+              <button class="btn btn-sm btn-outline-light" onclick="openModalCorreoMasivo()">Correo Masivo</button>
+              <button class="btn btn-sm btn-outline-success" onclick="openModalWhatsappMasivo()">WhatsApp Masivo</button>
+              <button class="btn btn-sm btn-outline-light" onclick="exportSelectedContactos('xlsx')">Exportar Excel</button>
+              <button class="btn btn-sm btn-outline-light" onclick="exportSelectedContactos('csv')">Exportar CSV</button>
+              <button class="btn btn-sm btn-outline-light" onclick="openModalAsignarResponsableMasivo()">Asignar Responsable</button>
+              <button class="btn btn-sm btn-outline-light" onclick="openModalAsignarEtiquetaMasivo()">Asignar Etiqueta</button>
+              <button class="btn btn-sm btn-text-danger" onclick="deseleccionarTodosContactos()">Deseleccionar</button>
             </div>
           </div>
 
           <!-- PANEL DE FILTROS AVANZADOS (Prioridad #7) -->
           <div class="advanced-filter-panel">
             <div class="filter-panel-title">
-              <span>&#128269; Filtros Avanzados</span>
+              <span>Filtros Avanzados</span>
               <button type="button" class="btn-link-sm" onclick="resetFiltrosContactos()">Limpiar Filtros</button>
             </div>
             <div class="filter-controls-grid">
@@ -734,9 +734,9 @@
               <h3>Exportar Empresas</h3>
               <p>Directorio corporativo completo con RNC, ubicación, teléfonos y responsable.</p>
               <div style="display:flex; flex-direction:column; gap:8px;">
-                <button class="btn btn-primary btn-block" onclick="exportData('empresas', 'xlsx')">&#128190; Descargar Excel (.xlsx)</button>
-                <button class="btn btn-outline btn-block" onclick="exportData('empresas', 'csv')">&#128196; Descargar CSV (.csv)</button>
-                <button class="btn btn-outline btn-block" onclick="exportPDF('empresas')">&#128438; Informe Imprimible (PDF)</button>
+                <button class="btn btn-primary btn-block" onclick="exportData('empresas', 'xlsx')">Descargar Excel (.xlsx)</button>
+                <button class="btn btn-outline btn-block" onclick="exportData('empresas', 'csv')">Descargar CSV (.csv)</button>
+                <button class="btn btn-outline btn-block" onclick="exportPDF('empresas')">Informe Imprimible (PDF)</button>
               </div>
             </div>
 
@@ -744,9 +744,9 @@
               <h3>Exportar Contactos</h3>
               <p>Base de datos de decisores comerciales con datos de contacto y empresa asociada.</p>
               <div style="display:flex; flex-direction:column; gap:8px;">
-                <button class="btn btn-primary btn-block" onclick="exportData('contactos', 'xlsx')">&#128190; Descargar Excel (.xlsx)</button>
-                <button class="btn btn-outline btn-block" onclick="exportData('contactos', 'csv')">&#128196; Descargar CSV (.csv)</button>
-                <button class="btn btn-outline btn-block" onclick="exportPDF('contactos')">&#128438; Informe Imprimible (PDF)</button>
+                <button class="btn btn-primary btn-block" onclick="exportData('contactos', 'xlsx')">Descargar Excel (.xlsx)</button>
+                <button class="btn btn-outline btn-block" onclick="exportData('contactos', 'csv')">Descargar CSV (.csv)</button>
+                <button class="btn btn-outline btn-block" onclick="exportPDF('contactos')">Informe Imprimible (PDF)</button>
               </div>
             </div>
 
@@ -754,9 +754,9 @@
               <h3>Exportar Oportunidades</h3>
               <p>Pipeline completo con etapas, cotizaciones mensuales y proyecciones anuales.</p>
               <div style="display:flex; flex-direction:column; gap:8px;">
-                <button class="btn btn-primary btn-block" onclick="exportData('prospectos', 'xlsx')">&#128190; Descargar Excel (.xlsx)</button>
-                <button class="btn btn-outline btn-block" onclick="exportData('prospectos', 'csv')">&#128196; Descargar CSV (.csv)</button>
-                <button class="btn btn-outline btn-block" onclick="exportPDF('prospectos')">&#128438; Informe Imprimible (PDF)</button>
+                <button class="btn btn-primary btn-block" onclick="exportData('prospectos', 'xlsx')">Descargar Excel (.xlsx)</button>
+                <button class="btn btn-outline btn-block" onclick="exportData('prospectos', 'csv')">Descargar CSV (.csv)</button>
+                <button class="btn btn-outline btn-block" onclick="exportPDF('prospectos')">Informe Imprimible (PDF)</button>
               </div>
             </div>
 
@@ -764,9 +764,9 @@
               <h3>Exportar Auditoría</h3>
               <p>Bitácora inmutable de accesos, inicios de sesión, cambios e IP registrada.</p>
               <div style="display:flex; flex-direction:column; gap:8px;">
-                <button class="btn btn-primary btn-block" onclick="exportData('auditoria', 'xlsx')">&#128190; Descargar Excel (.xlsx)</button>
-                <button class="btn btn-outline btn-block" onclick="exportData('auditoria', 'csv')">&#128196; Descargar CSV (.csv)</button>
-                <button class="btn btn-outline btn-block" onclick="exportPDF('auditoria')">&#128438; Informe Imprimible (PDF)</button>
+                <button class="btn btn-primary btn-block" onclick="exportData('auditoria', 'xlsx')">Descargar Excel (.xlsx)</button>
+                <button class="btn btn-outline btn-block" onclick="exportData('auditoria', 'csv')">Descargar CSV (.csv)</button>
+                <button class="btn btn-outline btn-block" onclick="exportPDF('auditoria')">Informe Imprimible (PDF)</button>
               </div>
             </div>
           </div>
@@ -963,8 +963,8 @@
               <div class="panel-body">
                 <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Para ingresar al CRM desde teléfonos celulares, tabletas u otras computadoras en la misma red Wi-Fi:</p>
                 <div style="background:#070a12; border:1px solid var(--border-color); padding:12px; border-radius:6px; font-family:var(--font-mono); font-size:12px; margin-bottom:10px;">
-                  <div>💻 Localhost: <strong id="cfgLocalhost">http://localhost:3000</strong></div>
-                  <div style="margin-top:6px;">📱 Red Wi-Fi / IP Local: <strong id="cfgNetwork" style="color:#60a5fa;">Cargando...</strong></div>
+                  <div>Localhost: <strong id="cfgLocalhost">http://localhost:3000</strong></div>
+                  <div style="margin-top:6px;">Red Wi-Fi / IP Local: <strong id="cfgNetwork" style="color:#60a5fa;">Cargando...</strong></div>
                 </div>
                 <div class="detail-item"><span class="detail-label">Escucha en:</span><code>0.0.0.0 (Acceso multi-dispositivo habilitado)</code></div>
                 <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Motor Activo:</span><strong id="cfgEngine" style="color:#34d399;">Cargando...</strong></div>
@@ -993,12 +993,12 @@
               <h2>Documentación Técnica & Sustentación de Posgrado</h2>
               <p class="text-muted">Memoria técnica, arquitectura, Modelo Entidad-Relación (ERD) y flujos operacionales de CRMComercial.</p>
             </div>
-            <button class="btn btn-outline" onclick="exportPDF('documentacion')">&#128438; Exportar Memoria en PDF</button>
+            <button class="btn btn-outline" onclick="exportPDF('documentacion')">Exportar Memoria en PDF</button>
           </div>
 
           <!-- 1. ARQUITECTURA -->
           <div class="doc-section-card">
-            <h3>&#127963; 1. Arquitectura del Sistema</h3>
+            <h3>1. Arquitectura del Sistema</h3>
             <p style="font-size:13px; line-height:1.6; color:#cbd5e1;">
               <strong>CRMComercial</strong> es una plataforma cliente-servidor de alto desempeño diseñada específicamente para <strong>IB SYSTEM S.R.L.</strong> Su arquitectura modular comprende:
             </p>
@@ -1012,7 +1012,7 @@
 
           <!-- 2. MODELO ENTIDAD RELACIÓN (ERD) -->
           <div class="doc-section-card">
-            <h3>&#128391; 2. Modelo Entidad-Relación (ERD)</h3>
+            <h3>2. Modelo Entidad-Relación (ERD)</h3>
             <p style="font-size:13px; color:#cbd5e1;">Diagrama relacional oficial con claves primarias (PK), foráneas (FK) y cardinalidad entre módulos:</p>
             <div class="doc-erd-diagram">
               <svg width="100%" height="320" viewBox="0 0 900 320" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1088,7 +1088,7 @@
 
           <!-- 3. CASOS DE USO Y FLUJOS -->
           <div class="doc-section-card">
-            <h3>&#128640; 3. Casos de Uso y Flujos Operacionales</h3>
+            <h3>3. Casos de Uso y Flujos Operacionales</h3>
             <div class="doc-flow-step">
               <span class="doc-flow-badge">CU-01</span>
               <div>
@@ -1117,7 +1117,7 @@
 
           <!-- 4. ESTRUCTURA DE BASE DE DATOS (Prioridad #11) -->
           <div class="doc-section-card">
-            <h3>&#128452; 4. Estructura de Base de Datos (MySQL 8.0 & JSON)</h3>
+            <h3>4. Estructura de Base de Datos (MySQL 8.0 & JSON)</h3>
             <p style="font-size:13px; color:#cbd5e1;">Esquema normalizado relacional diseñado para alta integridad referencial, trazabilidad inmutable y soporte multiusuario:</p>
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:12px;">
               <div style="background:#070a12; padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:11px;">
@@ -1149,7 +1149,7 @@
 
           <!-- 5. FLUJO DE IMPORTACIÓN INTELIGENTE (Prioridad #11) -->
           <div class="doc-section-card">
-            <h3>&#8681; 5. Flujo de Importación Inteligente de Datos</h3>
+            <h3>5. Flujo de Importación Inteligente de Datos</h3>
             <p style="font-size:13px; color:#cbd5e1; margin-bottom:14px;">Pipeline de procesamiento de archivos Excel (.xlsx) y CSV externos con validación heurística y deduplicación:</p>
             <div style="display:flex; flex-direction:column; gap:10px;">
               <div class="doc-flow-step">
@@ -1181,7 +1181,7 @@
 
           <!-- 6. FLUJO DEL PIPELINE COMERCIAL (Prioridad #11) -->
           <div class="doc-section-card">
-            <h3>&#128200; 6. Flujo del Pipeline Comercial & Ciclo de Conversión</h3>
+            <h3>6. Flujo del Pipeline Comercial & Ciclo de Conversión</h3>
             <p style="font-size:13px; color:#cbd5e1; margin-bottom:14px;">Ciclo de vida de prospectos y conversión comercial para IB SYSTEM S.R.L.:</p>
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
               <div style="background:#070a12; padding:12px; border-radius:8px; border-top:3px solid #3b82f6; font-size:12px;">
@@ -1202,7 +1202,7 @@
               </div>
             </div>
             <div style="margin-top:14px; padding:10px; background:#1e293b; border-radius:6px; font-size:11px; color:#cbd5e1;">
-              &#9889; <strong>Motor de Alertas Automáticas:</strong> El sistema monitorea la última interacción de cada prospecto y genera alertas a los <strong>3, 5, 7 y 15 días</strong> sin seguimiento para evitar fugas comerciales.
+              <strong>Motor de Alertas Automáticas:</strong> El sistema monitorea la última interacción de cada prospecto y genera alertas a los <strong>3, 5, 7 y 15 días</strong> sin seguimiento para evitar fugas comerciales.
             </div>
           </div>
         </section>
@@ -1335,7 +1335,7 @@
       <form id="formContacto">
         <input type="hidden" id="contactoId">
         <div class="modal-body">
-          <div class="form-section-title">&#128100; Datos Básicos</div>
+          <div class="form-section-title">Datos Básicos</div>
           <div class="form-row">
             <div class="form-group">
               <label>Nombre *</label>
@@ -1375,7 +1375,7 @@
             </div>
           </div>
 
-          <div class="form-section-title" style="margin-top:14px;">&#128188; Información Comercial & Responsable</div>
+          <div class="form-section-title" style="margin-top:14px;">Información Comercial & Responsable</div>
           <div class="form-row">
             <div class="form-group">
               <label>Naturaleza del Negocio</label>
@@ -1431,7 +1431,7 @@
             </div>
           </div>
 
-          <div class="form-section-title" style="margin-top:14px;">&#128205; Ubicación & Seguimiento</div>
+          <div class="form-section-title" style="margin-top:14px;">Ubicación & Seguimiento</div>
           <div class="form-row">
             <div class="form-group">
               <label>Ciudad</label>
@@ -1466,7 +1466,7 @@
             </div>
           </div>
 
-          <div class="form-section-title" style="margin-top:14px;">&#128221; Observaciones & Notas</div>
+          <div class="form-section-title" style="margin-top:14px;">Observaciones & Notas</div>
           <div class="form-row">
             <div class="form-group">
               <label>Observaciones Comerciales</label>
@@ -1497,7 +1497,7 @@
         <input type="hidden" id="prospectoId">
         <div class="modal-body">
           <div class="alert info" style="font-size:12px; margin-bottom:12px;">
-            &#128161; <strong>Selección Automática:</strong> Al seleccionar una Empresa, se cargarán sus contactos asociados y los datos de teléfono, WhatsApp y correo se completarán automáticamente.
+            <strong>Selección Automática:</strong> Al seleccionar una Empresa, se cargarán sus contactos asociados y los datos de teléfono, WhatsApp y correo se completarán automáticamente.
           </div>
 
           <div class="form-row">
@@ -1872,11 +1872,11 @@
       </div>
       <div class="modal-body">
         <div class="tabs-nav">
-          <button class="tab-btn active" onclick="switchDetalleEmpresaTab('tabEmpresaInfo')">&#128188; Ficha General</button>
-          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaContactos')">&#128101; Contactos Asociados (<span id="countEmpresaContactos">0</span>)</button>
-          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaOportunidades')">&#128200; Oportunidades (<span id="countEmpresaOportunidades">0</span>)</button>
-          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaSeguimientos')">&#9742; Seguimientos (<span id="countEmpresaSeguimientos">0</span>)</button>
-          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaAuditoria')">&#128221; Actividad & Historial</button>
+          <button class="tab-btn active" onclick="switchDetalleEmpresaTab('tabEmpresaInfo')">Ficha General</button>
+          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaContactos')">Contactos Asociados (<span id="countEmpresaContactos">0</span>)</button>
+          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaOportunidades')">Oportunidades (<span id="countEmpresaOportunidades">0</span>)</button>
+          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaSeguimientos')">Seguimientos (<span id="countEmpresaSeguimientos">0</span>)</button>
+          <button class="tab-btn" onclick="switchDetalleEmpresaTab('tabEmpresaAuditoria')">Actividad & Historial</button>
         </div>
 
         <!-- TAB 1: INFO GENERAL -->
@@ -1957,7 +1957,7 @@
       <div class="modal-header">
         <div>
           <h3 id="detalleContactoTitulo">Ficha de Contacto</h3>
-          <span class="badge" id="detalleContactoEmpresaLink" style="cursor:pointer;" title="Clic para ver empresa">&#127970; Ver Empresa Asociada</span>
+          <span class="badge" id="detalleContactoEmpresaLink" style="cursor:pointer;" title="Clic para ver empresa">Ver Empresa Asociada</span>
         </div>
         <button class="btn-close" onclick="closeModal('modalDetalleContacto')">&times;</button>
       </div>
@@ -1991,10 +1991,10 @@
           </div>
         </div>
 
-        <div class="form-section-title" style="margin-top:16px;">&#128200; Oportunidades Relacionadas con esta Empresa / Contacto</div>
+        <div class="form-section-title" style="margin-top:16px;">Oportunidades Relacionadas con esta Empresa / Contacto</div>
         <div id="detContOportunidadesList" style="margin-top:8px;"></div>
 
-        <div class="form-section-title" style="margin-top:16px;">&#9742; Historial de Seguimientos</div>
+        <div class="form-section-title" style="margin-top:16px;">Historial de Seguimientos</div>
         <div id="detContSeguimientosList" style="margin-top:8px;"></div>
       </div>
       <div class="modal-footer">
@@ -2009,7 +2009,7 @@
   <div id="modalCorreoMasivo" class="modal-backdrop hidden">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>&#9993; Enviar Correo Masivo</h3>
+        <h3>Enviar Correo Masivo</h3>
         <button class="btn-close" onclick="closeModal('modalCorreoMasivo')">&times;</button>
       </div>
       <form id="formCorreoMasivo" onsubmit="ejecutarEnvioCorreoMasivo(event)">
@@ -2039,7 +2039,7 @@
   <div id="modalWhatsappMasivo" class="modal-backdrop hidden">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>&#128172; Enviar WhatsApp Masivo</h3>
+        <h3>Enviar WhatsApp Masivo</h3>
         <button class="btn-close" onclick="closeModal('modalWhatsappMasivo')">&times;</button>
       </div>
       <div class="modal-body">
@@ -2060,7 +2060,7 @@
   <div id="modalAsignarResponsableMasivo" class="modal-backdrop hidden">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>&#128100; Asignar Responsable Comercial</h3>
+        <h3>Asignar Responsable Comercial</h3>
         <button class="btn-close" onclick="closeModal('modalAsignarResponsableMasivo')">&times;</button>
       </div>
       <div class="modal-body">
@@ -2081,7 +2081,7 @@
   <div id="modalAsignarEtiquetaMasivo" class="modal-backdrop hidden">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>&#127991; Asignar Etiqueta a Seleccionados</h3>
+        <h3>Asignar Etiqueta a Seleccionados</h3>
         <button class="btn-close" onclick="closeModal('modalAsignarEtiquetaMasivo')">&times;</button>
       </div>
       <div class="modal-body">
@@ -2115,7 +2115,7 @@
   <div id="modalPDFPreview" class="modal-backdrop hidden">
     <div class="modal-dialog modal-xl">
       <div class="modal-header">
-        <h3 id="pdfModalTitle">&#128438; Reporte Institucional Imprimible (PDF)</h3>
+        <h3 id="pdfModalTitle">Reporte Institucional Imprimible (PDF)</h3>
         <button class="btn-close" onclick="closeModal('modalPDFPreview')">&times;</button>
       </div>
       <div class="modal-body">
@@ -2125,7 +2125,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeModal('modalPDFPreview')">Cerrar</button>
-        <button type="button" class="btn btn-primary" onclick="window.print()">&#128438; Imprimir / Guardar como PDF</button>
+        <button type="button" class="btn btn-primary" onclick="window.print()">Imprimir / Guardar como PDF</button>
       </div>
     </div>
   </div>
