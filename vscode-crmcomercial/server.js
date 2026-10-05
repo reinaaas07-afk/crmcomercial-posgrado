@@ -8,7 +8,18 @@
  * 2. npm start
  */
 const express = require('express');
-const cors = require('cors');
+let cors;
+try {
+  cors = require('cors');
+} catch (e) {
+  cors = () => (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
+    next();
+  };
+}
 const path = require('path');
 const fs = require('fs');
 const db = require('./database/db');
@@ -1057,8 +1068,8 @@ db.initDatabase().then(() => {
     console.log(`================================================================`);
     console.log(` CRMComercial - IB SYSTEM S.R.L. (Proyecto de Posgrado)`);
     console.log(` Servidor Express activo en red local:`);
-    console.log(` 💻 Localhost:      http://localhost:${PORT}`);
-    console.log(` 📱 Red Local (IP): http://${localIp}:${PORT} (celulares / tablets)`);
+    console.log(` Localhost:      http://localhost:${PORT}`);
+    console.log(` Red Local (IP): http://${localIp}:${PORT} (celulares / tablets)`);
     console.log(` Base de Datos:     ${db.isUsingMySQL() ? 'MySQL 8.0 Conectado' : 'Motor JSON Persistente Activo'}`);
     console.log(` Frontend:          HTML5, CSS3, JavaScript Puro (Vanilla)`);
     console.log(` Migración MySQL:   npm run migrate:mysql | GET /api/migrate/download-sql`);
