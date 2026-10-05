@@ -250,6 +250,20 @@ CREATE TABLE IF NOT EXISTS `configuracion` (
   `valor` TEXT NOT NULL
 ) ENGINE=InnoDB;
 
+-- 14. Tabla: metas_comerciales (Metas y Rendimiento por Ejecutivo)
+CREATE TABLE IF NOT EXISTS `metas_comerciales` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `usuario_id` INT NOT NULL,
+  `usuario_nombre` VARCHAR(150) NOT NULL,
+  `meta_mensual` DECIMAL(12,2) DEFAULT 0.00,
+  `meta_trimestral` DECIMAL(12,2) DEFAULT 0.00,
+  `meta_anual` DECIMAL(12,2) DEFAULT 0.00,
+  `ventas_actuales` DECIMAL(12,2) DEFAULT 0.00,
+  `prospectos_ganados` INT DEFAULT 0,
+  `fecha_actualizacion` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuarios`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- =====================================================================
 -- DATOS INICIALES SEMILLA (SEED DATA)
 -- =====================================================================
@@ -306,4 +320,12 @@ INSERT INTO `tareas` (`id`, `titulo`, `descripcion`, `asignado_a`, `usuario_id`,
 (1, 'Llamar a Carmen Villalona (Farma Quisqueya)', 'Dar seguimiento a la propuesta enviada sobre facturación electrónica.', 'Armando Montes de Oca Hesni', 3, '2026-10-02', 'Alta', 'Pendiente', 'prospecto', 2, 'Distribuidora Farmacéutica Quisqueyana S.A.'),
 (2, 'Preparar demo POS para Ferretería Cibao', 'Configurar catálogo de ferretería en entorno de pruebas.', 'Armando Montes de Oca Hesni', 3, '2026-10-04', 'Media', 'En Progreso', 'prospecto', 4, 'Ferretería Industrial del Cibao S.R.L.'),
 (3, 'Revisar contratos firmados Auto Central', 'Archivar copia digital y coordinar capacitación con soporte técnico.', 'Yenifer Reina Sena Suero', 1, '2026-10-01', 'Media', 'Completada', 'empresa', 1, 'Auto Repuestos & Talleres Central S.R.L.');
+
+-- Metas Comerciales
+INSERT INTO `metas_comerciales` (`id`, `usuario_id`, `usuario_nombre`, `meta_mensual`, `meta_trimestral`, `meta_anual`, `ventas_actuales`, `prospectos_ganados`) VALUES
+(1, 1, 'Yenifer Reina Sena Suero', 2500.00, 7500.00, 30000.00, 2040.00, 3),
+(2, 2, 'Felix Manuel Robles', 2000.00, 6000.00, 24000.00, 1248.00, 1),
+(3, 3, 'Armando Montes de Oca Hesni', 2200.00, 6600.00, 26400.00, 1728.00, 2),
+(4, 4, 'Ana Julia Alcántara', 1500.00, 4500.00, 18000.00, 396.00, 0);
+
 

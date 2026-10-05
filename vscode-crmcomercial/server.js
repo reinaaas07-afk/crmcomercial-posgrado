@@ -45,7 +45,6 @@ function logAudit(usuario, accion, modulo, registro, detalles, ip, usuarioId = n
   const now = new Date();
   const fecha = now.toISOString().split('T')[0];
   const hora = now.toTimeString().slice(0, 8);
-  const data = db.getLocalData();
 
   const newLog = {
     id: Date.now(),
@@ -60,9 +59,14 @@ function logAudit(usuario, accion, modulo, registro, detalles, ip, usuarioId = n
     ip: ip || '127.0.0.1'
   };
 
-  data.auditoria.unshift(newLog);
-  if (data.auditoria.length > 2000) data.auditoria.pop();
-  db.saveLocalData(data);
+  if (typeof db.saveAuditoria === 'function') {
+    db.saveAuditoria(newLog);
+  } else {
+    const data = db.getLocalData();
+    data.auditoria.unshift(newLog);
+    if (data.auditoria.length > 2000) data.auditoria.pop();
+    db.saveLocalData(data);
+  }
 }
 
 // Helper Notificación
@@ -70,7 +74,6 @@ function createNotification(titulo, mensaje, usuario, tipo = 'nuevo_prospecto') 
   const now = new Date();
   const fecha = now.toISOString().split('T')[0];
   const hora = now.toTimeString().slice(0, 5);
-  const data = db.getLocalData();
 
   const notif = {
     id: Date.now(),
@@ -83,8 +86,13 @@ function createNotification(titulo, mensaje, usuario, tipo = 'nuevo_prospecto') 
     tipo
   };
 
-  data.notificaciones.unshift(notif);
-  db.saveLocalData(data);
+  if (typeof db.saveNotificacion === 'function') {
+    db.saveNotificacion(notif);
+  } else {
+    const data = db.getLocalData();
+    data.notificaciones.unshift(notif);
+    db.saveLocalData(data);
+  }
 }
 
 // --------------------------------------------------------------------
@@ -103,8 +111,8 @@ app.get('/api/status', (req, res) => {
 });
 
 // 2. Base de Datos Completa
-app.get('/api/db/all', (req, res) => {
-  const data = db.getLocalData();
+app.get('/api/db/all', async (req, res) => {
+  const data = typeof db.getAllData === 'function' ? await db.getAllData() : db.getLocalData();
   res.json(data);
 });
 
@@ -360,7 +368,7 @@ app.get('/api/empresas', (req, res) => {
   res.json(data.empresas);
 });
 
-app.post('/api/empresas', (req, res) => {
+app.post('/api/empresas', async (req, res) => {
   const data = db.getLocalData();
   const ip = getClientIp(req);
 
@@ -383,15 +391,19 @@ app.post('/api/empresas', (req, res) => {
     fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19)
   };
 
-  data.empresas.unshift(nueva);
+  if (typeof db.saveEmpresa === 'function') {
+    await db.saveEmpresa(nueva);
+  } else {
+    data.empresas.unshift(nueva);
+    db.saveLocalData(data);
+  }
   logAudit(req.body.autor || 'Administrador', 'Creación', 'Empresas', nueva.razon_social, `Creó empresa RNC: ${nueva.rnc}`, ip);
   createNotification('Nueva Empresa Registrada', `${nueva.razon_social} fue añadida al CRM.`, req.body.autor || 'Sistema', 'nuevo_prospecto');
-  db.saveLocalData(data);
 
   res.status(201).json(nueva);
 });
 
-app.put('/api/empresas/:id', (req, res) => {
+app.put('/api/empresas/:id', async (req, res) => {
   const id = Number(req.params.id);
   const data = db.getLocalData();
   const ip = getClientIp(req);
@@ -399,14 +411,19 @@ app.put('/api/empresas/:id', (req, res) => {
 
   if (idx === -1) return res.status(404).json({ error: 'Empresa no encontrada' });
 
-  data.empresas[idx] = { ...data.empresas[idx], ...req.body, id };
-  logAudit(req.body.autor || 'Administrador', 'Edición', 'Empresas', data.empresas[idx].razon_social, 'Actualizó datos corporativos', ip);
-  db.saveLocalData(data);
+  const updated = { ...data.empresas[idx], ...req.body, id };
+  if (typeof db.saveEmpresa === 'function') {
+    await db.saveEmpresa(updated);
+  } else {
+    data.empresas[idx] = updated;
+    db.saveLocalData(data);
+  }
+  logAudit(req.body.autor || 'Administrador', 'Edición', 'Empresas', updated.razon_social, 'Actualizó datos corporativos', ip);
 
-  res.json(data.empresas[idx]);
+  res.json(updated);
 });
 
-app.delete('/api/empresas/:id', (req, res) => {
+app.delete('/api/empresas/:id', async (req, res) => {
   const id = Number(req.params.id);
   const data = db.getLocalData();
   const ip = getClientIp(req);
@@ -414,9 +431,13 @@ app.delete('/api/empresas/:id', (req, res) => {
 
   if (!comp) return res.status(404).json({ error: 'Empresa no encontrada' });
 
-  data.empresas = data.empresas.filter((e) => e.id !== id);
+  if (typeof db.deleteEmpresa === 'function') {
+    await db.deleteEmpresa(id);
+  } else {
+    data.empresas = data.empresas.filter((e) => e.id !== id);
+    db.saveLocalData(data);
+  }
   logAudit(req.query.autor || 'Administrador', 'Eliminación', 'Empresas', comp.razon_social, 'Eliminó registro de empresa', ip);
-  db.saveLocalData(data);
 
   res.json({ success: true, message: 'Empresa eliminada' });
 });
@@ -427,7 +448,7 @@ app.get('/api/contactos', (req, res) => {
   res.json(data.contactos);
 });
 
-app.post('/api/contactos', (req, res) => {
+app.post('/api/contactos', async (req, res) => {
   const data = db.getLocalData();
   const ip = getClientIp(req);
 
@@ -472,15 +493,19 @@ app.post('/api/contactos', (req, res) => {
     fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19)
   };
 
-  data.contactos.unshift(nuevo);
+  if (typeof db.saveContacto === 'function') {
+    await db.saveContacto(nuevo);
+  } else {
+    data.contactos.unshift(nuevo);
+    db.saveLocalData(data);
+  }
   logAudit(req.body.autor || 'Administrador', 'Creación', 'Contactos', `${nuevo.nombre} ${nuevo.apellido}`, `Contacto registrado en ${nuevo.empresa} (Empresa ID: ${empresaId || 'N/A'})`, ip);
   createNotification('Nuevo Contacto Creado', `${nuevo.nombre} ${nuevo.apellido} registrado en ${nuevo.empresa}.`, req.body.autor || 'Sistema', 'contacto_actualizado');
-  db.saveLocalData(data);
 
   res.status(201).json(nuevo);
 });
 
-app.put('/api/contactos/:id', (req, res) => {
+app.put('/api/contactos/:id', async (req, res) => {
   const id = Number(req.params.id);
   const data = db.getLocalData();
   const ip = getClientIp(req);
@@ -488,14 +513,19 @@ app.put('/api/contactos/:id', (req, res) => {
 
   if (idx === -1) return res.status(404).json({ error: 'Contacto no encontrado' });
 
-  data.contactos[idx] = { ...data.contactos[idx], ...req.body, id };
-  logAudit(req.body.autor || 'Administrador', 'Edición', 'Contactos', `${data.contactos[idx].nombre} ${data.contactos[idx].apellido}`, 'Actualizó datos de contacto', ip);
-  db.saveLocalData(data);
+  const updated = { ...data.contactos[idx], ...req.body, id };
+  if (typeof db.saveContacto === 'function') {
+    await db.saveContacto(updated);
+  } else {
+    data.contactos[idx] = updated;
+    db.saveLocalData(data);
+  }
+  logAudit(req.body.autor || 'Administrador', 'Edición', 'Contactos', `${updated.nombre} ${updated.apellido}`, 'Actualizó datos de contacto', ip);
 
-  res.json(data.contactos[idx]);
+  res.json(updated);
 });
 
-app.delete('/api/contactos/:id', (req, res) => {
+app.delete('/api/contactos/:id', async (req, res) => {
   const id = Number(req.params.id);
   const data = db.getLocalData();
   const ip = getClientIp(req);
@@ -503,9 +533,13 @@ app.delete('/api/contactos/:id', (req, res) => {
 
   if (!cont) return res.status(404).json({ error: 'Contacto no encontrado' });
 
-  data.contactos = data.contactos.filter((c) => c.id !== id);
+  if (typeof db.deleteContacto === 'function') {
+    await db.deleteContacto(id);
+  } else {
+    data.contactos = data.contactos.filter((c) => c.id !== id);
+    db.saveLocalData(data);
+  }
   logAudit(req.query.autor || 'Administrador', 'Eliminación', 'Contactos', `${cont.nombre} ${cont.apellido}`, 'Eliminó contacto', ip);
-  db.saveLocalData(data);
 
   res.json({ success: true });
 });
@@ -566,7 +600,7 @@ app.get('/api/prospectos', (req, res) => {
   res.json(data.prospectos);
 });
 
-app.post('/api/prospectos', (req, res) => {
+app.post('/api/prospectos', async (req, res) => {
   const data = db.getLocalData();
   const ip = getClientIp(req);
 
@@ -608,15 +642,19 @@ app.post('/api/prospectos', (req, res) => {
     fecha_registro: new Date().toISOString().replace('T', ' ').slice(0, 19)
   };
 
-  data.prospectos.unshift(nuevo);
+  if (typeof db.saveProspecto === 'function') {
+    await db.saveProspecto(nuevo);
+  } else {
+    data.prospectos.unshift(nuevo);
+    db.saveLocalData(data);
+  }
   logAudit(req.body.autor || nuevo.responsable_comercial, 'Creación', 'Pipeline Comercial', nuevo.empresa, `Oportunidad creada: Plan ${nuevo.plan_seleccionado} ($${nuevo.costo_mensual}/mes)`, ip);
   createNotification('Nueva Oportunidad Comercial', `${nuevo.empresa} añadida en etapa "${nuevo.etapa}".`, req.body.autor || 'Sistema', 'nuevo_prospecto');
-  db.saveLocalData(data);
 
   res.status(201).json(nuevo);
 });
 
-app.put('/api/prospectos/:id', (req, res) => {
+app.put('/api/prospectos/:id', async (req, res) => {
   const id = Number(req.params.id);
   const data = db.getLocalData();
   const ip = getClientIp(req);
@@ -637,7 +675,12 @@ app.put('/api/prospectos/:id', (req, res) => {
     updated.valor_estimado = updated.costo_mensual * 12;
   }
 
-  data.prospectos[idx] = updated;
+  if (typeof db.saveProspecto === 'function') {
+    await db.saveProspecto(updated);
+  } else {
+    data.prospectos[idx] = updated;
+    db.saveLocalData(data);
+  }
 
   const accionTexto = old.etapa !== updated.etapa ? `Movió etapa a "${updated.etapa}"` : 'Actualizó datos de la oportunidad';
   logAudit(req.body.autor || updated.responsable_comercial, 'Edición', 'Pipeline Comercial', updated.empresa, accionTexto, ip);
@@ -646,11 +689,10 @@ app.put('/api/prospectos/:id', (req, res) => {
     createNotification('Cambio de Etapa en Pipeline', `${updated.empresa} avanzó a "${updated.etapa}".`, req.body.autor || 'Sistema', 'cambio_etapa');
   }
 
-  db.saveLocalData(data);
   res.json(updated);
 });
 
-app.delete('/api/prospectos/:id', (req, res) => {
+app.delete('/api/prospectos/:id', async (req, res) => {
   const id = Number(req.params.id);
   const data = db.getLocalData();
   const ip = getClientIp(req);
@@ -658,9 +700,13 @@ app.delete('/api/prospectos/:id', (req, res) => {
 
   if (!pros) return res.status(404).json({ error: 'Prospecto no encontrado' });
 
-  data.prospectos = data.prospectos.filter((p) => p.id !== id);
+  if (typeof db.deleteProspecto === 'function') {
+    await db.deleteProspecto(id);
+  } else {
+    data.prospectos = data.prospectos.filter((p) => p.id !== id);
+    db.saveLocalData(data);
+  }
   logAudit(req.query.autor || 'Administrador', 'Eliminación', 'Pipeline Comercial', pros.empresa, 'Eliminó oportunidad comercial', ip);
-  db.saveLocalData(data);
 
   res.json({ success: true });
 });
@@ -671,7 +717,7 @@ app.get('/api/seguimientos', (req, res) => {
   res.json(data.seguimientos);
 });
 
-app.post('/api/seguimientos', (req, res) => {
+app.post('/api/seguimientos', async (req, res) => {
   const data = db.getLocalData();
   const ip = getClientIp(req);
   const now = new Date();
@@ -691,20 +737,27 @@ app.post('/api/seguimientos', (req, res) => {
     fecha_proximo_seguimiento: req.body.fecha_proximo_seguimiento || ''
   };
 
-  data.seguimientos.unshift(nuevo);
+  if (typeof db.saveSeguimiento === 'function') {
+    await db.saveSeguimiento(nuevo);
+  } else {
+    data.seguimientos.unshift(nuevo);
+    db.saveLocalData(data);
+  }
 
   // Actualizar días sin seguimiento en prospecto
-  const pIdx = data.prospectos.findIndex((p) => p.id === Number(nuevo.prospecto_id));
+  const pIdx = (data.prospectos || []).findIndex((p) => p.id === Number(nuevo.prospecto_id));
   if (pIdx !== -1) {
     data.prospectos[pIdx].ultima_actividad = `${nuevo.fecha} ${nuevo.hora}:00`;
     data.prospectos[pIdx].dias_sin_seguimiento = 0;
     if (nuevo.fecha_proximo_seguimiento) {
       data.prospectos[pIdx].proximo_seguimiento = nuevo.fecha_proximo_seguimiento;
     }
+    if (typeof db.saveProspecto === 'function') {
+      await db.saveProspecto(data.prospectos[pIdx]);
+    }
   }
 
   logAudit(nuevo.usuario, 'Creación', 'Seguimientos', nuevo.empresa, `Registró interacción ${nuevo.canal} (${nuevo.resultado})`, ip);
-  db.saveLocalData(data);
 
   res.status(201).json(nuevo);
 });
@@ -715,7 +768,7 @@ app.get('/api/tareas', (req, res) => {
   res.json(data.tareas);
 });
 
-app.post('/api/tareas', (req, res) => {
+app.post('/api/tareas', async (req, res) => {
   const data = db.getLocalData();
   const ip = getClientIp(req);
 
@@ -733,14 +786,18 @@ app.post('/api/tareas', (req, res) => {
     relacionado_nombre: req.body.relacionado_nombre || ''
   };
 
-  data.tareas.unshift(nueva);
+  if (typeof db.saveTarea === 'function') {
+    await db.saveTarea(nueva);
+  } else {
+    data.tareas.unshift(nueva);
+    db.saveLocalData(data);
+  }
   logAudit(req.body.autor || nueva.asignado_a, 'Creación', 'Tareas', nueva.titulo, `Asignada a ${nueva.asignado_a}`, ip);
-  db.saveLocalData(data);
 
   res.status(201).json(nueva);
 });
 
-app.put('/api/tareas/:id', (req, res) => {
+app.put('/api/tareas/:id', async (req, res) => {
   const id = Number(req.params.id);
   const data = db.getLocalData();
   const ip = getClientIp(req);
@@ -748,20 +805,29 @@ app.put('/api/tareas/:id', (req, res) => {
 
   if (idx === -1) return res.status(404).json({ error: 'Tarea no encontrada' });
 
-  data.tareas[idx] = { ...data.tareas[idx], ...req.body, id };
+  const updated = { ...data.tareas[idx], ...req.body, id };
+  if (typeof db.saveTarea === 'function') {
+    await db.saveTarea(updated);
+  } else {
+    data.tareas[idx] = updated;
+    db.saveLocalData(data);
+  }
   logAudit(req.body.autor || data.tareas[idx].asignado_a, 'Edición', 'Tareas', data.tareas[idx].titulo, `Estado actualizado a "${data.tareas[idx].estado}"`, ip);
-  db.saveLocalData(data);
 
-  res.json(data.tareas[idx]);
+  res.json(updated);
 });
 
-app.delete('/api/tareas/:id', (req, res) => {
+app.delete('/api/tareas/:id', async (req, res) => {
   const id = Number(req.params.id);
   const data = db.getLocalData();
   const ip = getClientIp(req);
-  data.tareas = data.tareas.filter((t) => t.id !== id);
+  if (typeof db.deleteTarea === 'function') {
+    await db.deleteTarea(id);
+  } else {
+    data.tareas = data.tareas.filter((t) => t.id !== id);
+    db.saveLocalData(data);
+  }
   logAudit(req.query.autor || 'Administrador', 'Eliminación', 'Tareas', `ID: ${id}`, 'Tarea eliminada', ip);
-  db.saveLocalData(data);
   res.json({ success: true });
 });
 
@@ -777,10 +843,14 @@ app.get('/api/notificaciones', (req, res) => {
   res.json(data.notificaciones);
 });
 
-app.post('/api/notificaciones/mark-read', (req, res) => {
-  const data = db.getLocalData();
-  data.notificaciones.forEach((n) => (n.leida = true));
-  db.saveLocalData(data);
+app.post('/api/notificaciones/mark-read', async (req, res) => {
+  if (typeof db.markNotificacionesRead === 'function') {
+    await db.markNotificacionesRead(req.body.usuario);
+  } else {
+    const data = db.getLocalData();
+    data.notificaciones.forEach((n) => (n.leida = true));
+    db.saveLocalData(data);
+  }
   res.json({ success: true });
 });
 
@@ -790,8 +860,14 @@ app.get('/api/metas', (req, res) => {
   res.json(data.metas_comerciales || []);
 });
 
-app.put('/api/metas/:usuarioId', (req, res) => {
+app.put('/api/metas/:usuarioId', async (req, res) => {
   const usuarioId = Number(req.params.usuarioId);
+  if (typeof db.updateMetasComerciales === 'function') {
+    await db.updateMetasComerciales(usuarioId, req.body);
+    const data = db.getLocalData();
+    const updated = (data.metas_comerciales || []).find((m) => m.usuario_id === usuarioId);
+    return res.json(updated || req.body);
+  }
   const data = db.getLocalData();
   const idx = (data.metas_comerciales || []).findIndex((m) => m.usuario_id === usuarioId);
 
