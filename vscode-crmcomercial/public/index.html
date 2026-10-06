@@ -1273,6 +1273,7 @@
       <form id="formEmpresa">
         <input type="hidden" id="empresaId">
         <div class="modal-body">
+          <div class="form-section-title">DATOS BÁSICOS</div>
           <div class="form-row">
             <div class="form-group">
               <label>Razón Social *</label>
@@ -1295,26 +1296,6 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Ciudad</label>
-              <input type="text" id="empresaCiudad" value="Santo Domingo">
-            </div>
-            <div class="form-group">
-              <label>Provincia</label>
-              <input type="text" id="empresaProvincia" value="Distrito Nacional">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Teléfono Principal</label>
-              <input type="text" id="empresaTelefono" placeholder="+1 809-000-0000">
-            </div>
-            <div class="form-group">
-              <label>Correo Principal</label>
-              <input type="email" id="empresaCorreo" placeholder="contacto@empresa.com.do">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
               <label>Sitio Web</label>
               <input type="url" id="empresaWeb" placeholder="https://...">
             </div>
@@ -1329,6 +1310,32 @@
               </select>
             </div>
           </div>
+
+          <div class="form-section-title" style="margin-top:16px;">UBICACIÓN</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ciudad</label>
+              <input type="text" id="empresaCiudad" value="Santo Domingo">
+            </div>
+            <div class="form-group">
+              <label>Provincia</label>
+              <input type="text" id="empresaProvincia" value="Distrito Nacional">
+            </div>
+          </div>
+
+          <div class="form-section-title" style="margin-top:16px;">COMUNICACIÓN & CONTACTO</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Teléfono Principal</label>
+              <input type="text" id="empresaTelefono" placeholder="+1 809-000-0000">
+            </div>
+            <div class="form-group">
+              <label>Correo Principal</label>
+              <input type="email" id="empresaCorreo" placeholder="contacto@empresa.com.do">
+            </div>
+          </div>
+
+          <div class="form-section-title" style="margin-top:16px;">INFORMACIÓN COMERCIAL</div>
           <div class="form-row">
             <div class="form-group">
               <label>Estado Comercial</label>
@@ -1363,7 +1370,7 @@
       <form id="formContacto">
         <input type="hidden" id="contactoId">
         <div class="modal-body">
-          <div class="form-section-title">Datos Básicos</div>
+          <div class="form-section-title">DATOS BÁSICOS</div>
           <div class="form-row">
             <div class="form-group">
               <label>Nombre *</label>
@@ -1403,21 +1410,8 @@
             </div>
           </div>
 
-          <div class="form-section-title" style="margin-top:14px;">Información Comercial & Responsable</div>
+          <div class="form-section-title" style="margin-top:16px;">INFORMACIÓN COMERCIAL</div>
           <div class="form-row">
-            <div class="form-group">
-              <label>Naturaleza del Negocio</label>
-              <select id="contactoNaturaleza">
-                <option value="Comercio Mayorista / Distribución">Comercio Mayorista / Distribución</option>
-                <option value="Supermercados / Gran Superficie Retail">Supermercados / Retail</option>
-                <option value="Ferretería & Construcción">Ferretería & Construcción</option>
-                <option value="Restaurantes & Gastronomía">Restaurantes & Gastronomía</option>
-                <option value="Farmacias & Salud">Farmacias & Salud</option>
-                <option value="Repuestos Automotrices & Talleres">Repuestos Automotrices & Talleres</option>
-                <option value="Industria & Manufactura">Industria & Manufactura</option>
-                <option value="Servicios Profesionales">Servicios Profesionales</option>
-              </select>
-            </div>
             <div class="form-group">
               <label>Estado Comercial</label>
               <select id="contactoEstadoComercial">
@@ -1428,11 +1422,8 @@
                 <option value="Cliente Inactivo">Cliente Inactivo</option>
               </select>
             </div>
-          </div>
-
-          <div class="form-row">
             <div class="form-group">
-              <label>Producto de Interés Principal</label>
+              <label>Producto de Interés</label>
               <select id="contactoProductoInteres">
                 <option value="ITHOT System">ITHOT System</option>
                 <option value="POS Digital">POS Digital</option>
@@ -1440,6 +1431,9 @@
                 <option value="CRMComercial">CRMComercial</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group">
               <label>Módulo Principal</label>
               <select id="contactoModuloPrincipal">
@@ -1459,7 +1453,23 @@
             </div>
           </div>
 
-          <div class="form-section-title" style="margin-top:14px;">Ubicación & Seguimiento</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Naturaleza del Negocio</label>
+              <select id="contactoNaturaleza">
+                <option value="Comercio Mayorista / Distribución">Comercio Mayorista / Distribución</option>
+                <option value="Supermercados / Gran Superficie Retail">Supermercados / Retail</option>
+                <option value="Ferretería & Construcción">Ferretería & Construcción</option>
+                <option value="Restaurantes & Gastronomía">Restaurantes & Gastronomía</option>
+                <option value="Farmacias & Salud">Farmacias & Salud</option>
+                <option value="Repuestos Automotrices & Talleres">Repuestos Automotrices & Talleres</option>
+                <option value="Industria & Manufactura">Industria & Manufactura</option>
+                <option value="Servicios Profesionales">Servicios Profesionales</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-section-title" style="margin-top:16px;">UBICACIÓN</div>
           <div class="form-row">
             <div class="form-group">
               <label>Ciudad</label>
@@ -1469,19 +1479,22 @@
               <label>Provincia</label>
               <input type="text" id="contactoProvincia" value="Distrito Nacional">
             </div>
-            <div class="form-group">
-              <label>Dirección Física</label>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label>Dirección</label>
               <input type="text" id="contactoDireccion" placeholder="Calle, número, sector...">
             </div>
           </div>
 
+          <div class="form-section-title" style="margin-top:16px;">SEGUIMIENTO</div>
           <div class="form-row">
             <div class="form-group">
-              <label>Fecha Próximo Seguimiento</label>
+              <label>Próximo Seguimiento</label>
               <input type="date" id="contactoProximoSeguimiento">
             </div>
             <div class="form-group">
-              <label>Etiquetas / Tags (Separar por comas)</label>
+              <label>Etiquetas</label>
               <input type="text" id="contactoEtiquetas" placeholder="ej. Prospecto, Facturación Electrónica, Ventas">
               <div class="tag-quick-pills">
                 <span class="tag-pill" onclick="appendTagToInput('Lead')">+ Lead</span>
@@ -1494,10 +1507,9 @@
             </div>
           </div>
 
-          <div class="form-section-title" style="margin-top:14px;">Observaciones & Notas</div>
           <div class="form-row">
             <div class="form-group">
-              <label>Observaciones Comerciales</label>
+              <label>Observaciones</label>
               <textarea id="contactoObservacionesComerciales" rows="2" placeholder="Detalles de interés, requerimientos específicos o historial..."></textarea>
             </div>
             <div class="form-group">
@@ -1528,6 +1540,7 @@
             <strong>Selección Automática:</strong> Al seleccionar una Empresa, se cargarán sus contactos asociados y los datos de teléfono, WhatsApp y correo se completarán automáticamente.
           </div>
 
+          <div class="form-section-title">DATOS BÁSICOS & VINCULACIÓN</div>
           <div class="form-row">
             <div class="form-group">
               <label>Empresa Asociada *</label>
@@ -1543,7 +1556,7 @@
             </div>
           </div>
 
-          <div class="form-row">
+          <div class="form-row cols-3">
             <div class="form-group">
               <label>Teléfono Directo</label>
               <input type="text" id="prosTelefono" placeholder="+1 809-000-0000">
@@ -1558,6 +1571,7 @@
             </div>
           </div>
 
+          <div class="form-section-title" style="margin-top:16px;">INFORMACIÓN COMERCIAL</div>
           <div class="form-row">
             <div class="form-group">
               <label>Etapa del Pipeline Comercial *</label>

@@ -378,23 +378,54 @@ function renderDashboard() {
       .join('');
   }
 
-  // Actividad Reciente
-  const audit = (state.db.auditoria || []).slice(0, 6);
+  // Actividad Comercial Reciente (Prioridad #7: Excluir credenciales inválidas y seguridad)
+  const commercialModules = ['Contactos', 'Empresas', 'Pipeline Comercial', 'Oportunidades', 'Seguimientos', 'Importaciones', 'Exportaciones'];
+  const commercialAudit = (state.db.auditoria || [])
+    .filter((a) => {
+      const mod = a.modulo || '';
+      const act = (a.accion || '').toLowerCase();
+      const det = (a.detalles || '').toLowerCase();
+      const isSecurity =
+        mod === 'Autenticación' ||
+        mod === 'Seguridad' ||
+        act.includes('login') ||
+        act.includes('acceso') ||
+        act.includes('logout') ||
+        det.includes('credenciales') ||
+        det.includes('password') ||
+        det.includes('sesión');
+      if (isSecurity) return false;
+      return (
+        commercialModules.includes(mod) ||
+        act.includes('creación') ||
+        act.includes('edición') ||
+        act.includes('etapa') ||
+        act.includes('seguimiento') ||
+        act.includes('importación') ||
+        act.includes('exportación')
+      );
+    })
+    .slice(0, 6);
+
   const feedEl = document.getElementById('recentActivityList');
   if (feedEl) {
-    feedEl.innerHTML = audit
-      .map(
-        (a) => `
-        <div style="padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size:12px;">
-          <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
-            <strong>${a.usuario}</strong>
-            <span>${a.hora}</span>
+    if (commercialAudit.length === 0) {
+      feedEl.innerHTML = '<div style="padding: 12px 0; color: var(--text-muted); font-size: 12px; text-align: center;">No hay actividad comercial reciente registrada.</div>';
+    } else {
+      feedEl.innerHTML = commercialAudit
+        .map(
+          (a) => `
+          <div style="padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size:12px;">
+            <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
+              <strong>${escapeHtml(a.usuario)}</strong>
+              <span>${escapeHtml(a.hora)}</span>
+            </div>
+            <div>${escapeHtml(a.detalles || a.registro_afectado)}</div>
           </div>
-          <div>${a.detalles || a.registro_afectado}</div>
-        </div>
-      `
-      )
-      .join('');
+        `
+        )
+        .join('');
+    }
   }
 }
 
@@ -1937,19 +1968,22 @@ function calculatePricing() {
 // PIPELINE KANBAN PROFESIONAL CON DRAG & DROP REAL (Prioridad #3)
 // --------------------------------------------------------------------------
 let draggedProspectoId = null;
+let touchDragCardId = null;
 
 function handleKanbanDragStart(e, id) {
   draggedProspectoId = id;
-  e.dataTransfer.setData('text/plain', String(id));
-  e.dataTransfer.effectAllowed = 'move';
-  const card = e.currentTarget;
+  if (e && e.dataTransfer) {
+    e.dataTransfer.setData('text/plain', String(id));
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  const card = e && e.currentTarget ? e.currentTarget : null;
   if (card) {
     card.classList.add('is-dragging');
   }
 }
 
 function handleKanbanDragEnd(e) {
-  const card = e.currentTarget;
+  const card = e && e.currentTarget ? e.currentTarget : null;
   if (card) {
     card.classList.remove('is-dragging');
   }
@@ -1958,34 +1992,31 @@ function handleKanbanDragEnd(e) {
 }
 
 function handleKanbanDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  const container = e.currentTarget;
-  if (container && !container.classList.contains('drag-over')) {
-    container.classList.add('drag-over');
+  if (e) {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const container = e.currentTarget;
+    if (container && !container.classList.contains('drag-over')) {
+      container.classList.add('drag-over');
+    }
   }
 }
 
 function handleKanbanDragLeave(e) {
-  const container = e.currentTarget;
-  if (container && e.relatedTarget && !container.contains(e.relatedTarget)) {
-    container.classList.remove('drag-over');
+  if (e) {
+    const container = e.currentTarget;
+    if (container && e.relatedTarget && !container.contains(e.relatedTarget)) {
+      container.classList.remove('drag-over');
+    }
   }
 }
 
-async function handleKanbanDrop(e, newStage) {
-  e.preventDefault();
-  const container = e.currentTarget;
-  if (container) container.classList.remove('drag-over');
-
-  const rawId = e.dataTransfer.getData('text/plain') || draggedProspectoId;
-  const id = Number(rawId);
-  if (!id) return;
-
-  const pros = (state.db.prospectos || []).find((p) => p.id === id);
+// Mover etapa con persistencia real y actualización inmediata
+async function moveProspectoStageDirectly(id, newStage) {
+  const pros = (state.db.prospectos || []).find((p) => p.id === Number(id));
   if (!pros || pros.etapa === newStage) return;
 
-  // Actualización visual inmediata (optimista)
+  // Actualización visual inmediata en Kanban y Dashboard (Optimista)
   const oldStage = pros.etapa;
   pros.etapa = newStage;
   renderPipelineBoard();
@@ -1998,7 +2029,7 @@ async function handleKanbanDrop(e, newStage) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ etapa: newStage, autor })
     });
-    if (!res.ok) throw new Error('Error al actualizar etapa');
+    if (!res.ok) throw new Error('Error al actualizar etapa en el servidor');
 
     // Recargar datos para actualizar auditoría, historial y contadores de forma definitiva
     await loadAllData();
@@ -2008,6 +2039,54 @@ async function handleKanbanDrop(e, newStage) {
     renderDashboard();
     alert('Error al mover oportunidad: ' + err.message);
   }
+}
+
+async function handleKanbanDrop(e, newStage) {
+  if (e) {
+    e.preventDefault();
+    const container = e.currentTarget;
+    if (container) container.classList.remove('drag-over');
+  }
+
+  const rawId = (e && e.dataTransfer ? e.dataTransfer.getData('text/plain') : null) || draggedProspectoId;
+  const id = Number(rawId);
+  if (!id) return;
+  await moveProspectoStageDirectly(id, newStage);
+}
+
+// Soporte táctil Drag & Drop para celulares y tablets (Prioridad #4)
+function handleKanbanTouchStart(e, id) {
+  touchDragCardId = id;
+  draggedProspectoId = id;
+}
+
+function handleKanbanTouchMove(e) {
+  if (!touchDragCardId) return;
+  const touch = e.touches[0];
+  const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+  const container = targetEl ? targetEl.closest('.kanban-cards') : null;
+  document.querySelectorAll('.kanban-cards').forEach((el) => el.classList.remove('drag-over'));
+  if (container) {
+    container.classList.add('drag-over');
+  }
+}
+
+async function handleKanbanTouchEnd(e) {
+  if (!touchDragCardId) return;
+  const touch = e.changedTouches[0];
+  const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+  const col = targetEl ? targetEl.closest('.kanban-col') : null;
+  document.querySelectorAll('.kanban-cards').forEach((el) => el.classList.remove('drag-over'));
+
+  if (col) {
+    const stageHeader = col.querySelector('.kanban-col-header h4');
+    const stageName = stageHeader ? stageHeader.textContent.trim() : null;
+    if (stageName) {
+      await moveProspectoStageDirectly(touchDragCardId, stageName);
+    }
+  }
+  touchDragCardId = null;
+  draggedProspectoId = null;
 }
 
 function renderPipelineBoard() {
@@ -2031,7 +2110,7 @@ function renderPipelineBoard() {
     containerEl.innerHTML = items
       .map(
         (p) => `
-        <div class="kanban-card" draggable="true" ondragstart="handleKanbanDragStart(event, ${p.id})" ondragend="handleKanbanDragEnd(event)">
+        <div class="kanban-card" draggable="true" ondragstart="handleKanbanDragStart(event, ${p.id})" ondragend="handleKanbanDragEnd(event)" ontouchstart="handleKanbanTouchStart(event, ${p.id})" ontouchmove="handleKanbanTouchMove(event)" ontouchend="handleKanbanTouchEnd(event)">
           <div class="card-company" onclick="openOportunidadDetalle(${p.id})" style="cursor:pointer;" title="Clic para ver y editar ficha">${escapeHtml(p.empresa)}</div>
           <div class="card-contact">${escapeHtml(p.contacto_principal || 'Sin contacto')} &bull; ${escapeHtml(p.telefono || '')}</div>
           <div class="card-pricing">
@@ -2040,9 +2119,15 @@ function renderPipelineBoard() {
           </div>
           <div class="card-footer">
             <span>${p.responsable_comercial ? escapeHtml(p.responsable_comercial.split(' ')[0]) : 'Ejecutivo'}</span>
-            <div style="display:flex; gap:4px;">
-              <button class="btn btn-outline btn-sm" onclick="openOportunidadDetalle(${p.id})" title="Ver y Editar Ficha Directa">Ver Ficha</button>
-              <button class="btn btn-outline btn-sm" onclick="openHistorial(${p.id}, '${escapeHtml(p.empresa)}')" title="Historial y Actividad">Historial</button>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <select class="kanban-quick-stage-select" onchange="moveProspectoStageDirectly(${p.id}, this.value)" title="Mover etapa" style="font-size:11px; padding:2px 4px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:4px; max-width:85px;">
+                <option value="Contacto" ${p.etapa === 'Contacto' ? 'selected' : ''}>Contacto</option>
+                <option value="Interesado" ${p.etapa === 'Interesado' ? 'selected' : ''}>Interesado</option>
+                <option value="Propuesta Enviada" ${p.etapa === 'Propuesta Enviada' ? 'selected' : ''}>Propuesta</option>
+                <option value="Ganado" ${p.etapa === 'Ganado' ? 'selected' : ''}>Ganado</option>
+                <option value="Perdido" ${p.etapa === 'Perdido' ? 'selected' : ''}>Perdido</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="openOportunidadDetalle(${p.id})" title="Ver y Editar Ficha Directa">Ficha</button>
             </div>
           </div>
         </div>
@@ -3106,14 +3191,81 @@ function handleGlobalSearch(e) {
 }
 
 // --------------------------------------------------------------------------
-// HELPERS DE MODALES
+// HELPERS DE MODALES CON CONTROL TOTAL DE SCROLL (PRIORIDAD #1)
 // --------------------------------------------------------------------------
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
+    const modalBody = modal.querySelector('.modal-body');
+    if (modalBody) {
+      modalBody.scrollTop = 0;
+    }
+  }
 }
 
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.classList.add('hidden');
+  if (modal) {
+    modal.classList.add('hidden');
+    const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+    if (openModals.length === 0) {
+      document.body.classList.remove('modal-open');
+      document.documentElement.classList.remove('modal-open');
+    }
+  }
 }
+
+// Cerrar modal al hacer clic en el backdrop fuera del diálogo
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.classList.contains('modal-backdrop')) {
+    e.target.classList.add('hidden');
+    const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+    if (openModals.length === 0) {
+      document.body.classList.remove('modal-open');
+      document.documentElement.classList.remove('modal-open');
+    }
+  }
+});
+
+// CONTROL TOTAL DE SCROLL EN COMPUTADORAS (PRIORIDAD #1):
+// La rueda del mouse y touchpad desplazan ÚNICAMENTE el contenido del modal, impidiendo que el fondo se mueva.
+document.addEventListener(
+  'wheel',
+  function (e) {
+    const activeModal = document.querySelector('.modal-backdrop:not(.hidden)');
+    if (!activeModal) return;
+
+    // Si el cursor o evento está dentro del modal activo o su backdrop:
+    if (activeModal.contains(e.target)) {
+      e.preventDefault();
+      const dialog = activeModal.querySelector('.modal-dialog');
+      if (dialog) {
+        const modalBody = dialog.querySelector('.modal-body');
+        if (modalBody) {
+          modalBody.scrollTop += e.deltaY;
+        }
+      }
+    }
+  },
+  { passive: false }
+);
+
+// CONTROL DE DESPLAZAMIENTO EN PANTALLAS TÁCTILES (MÓVILES Y TABLETS):
+document.addEventListener(
+  'touchmove',
+  function (e) {
+    const activeModal = document.querySelector('.modal-backdrop:not(.hidden)');
+    if (!activeModal) return;
+
+    const modalBody = activeModal.querySelector('.modal-body');
+    // Si el toque no está dentro del modal-body, evitar scroll del fondo
+    if (!modalBody || !modalBody.contains(e.target)) {
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
+

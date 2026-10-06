@@ -1120,32 +1120,75 @@ app.post('/api/migrate/json-to-mysql', async (req, res) => {
   }
 });
 
+// Información de Red Local para Acceso desde otras Laptops (Prioridad #3)
+app.get('/api/network-info', (req, res) => {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  const ips = [];
+
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        ips.push({ interface: name, address: iface.address, url: `http://${iface.address}:${PORT}` });
+      }
+    }
+  }
+
+  res.json({
+    puerto: PORT,
+    ips_detectadas: ips,
+    firewall_instrucciones: 'Asegurar que el puerto 3000 TCP esté permitido en el Firewall de Windows (Inbound Rule: TCP Port 3000).',
+    comando_firewall: 'netsh advfirewall firewall add rule name="CRMComercial Port 3000" dir=in action=allow protocol=TCP localport=3000'
+  });
+});
+
 // Ruta comodín para SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Iniciar servidor configurado para red local (Prioridad #13: 0.0.0.0)
+// Iniciar servidor configurado para red local (Prioridad #3: 0.0.0.0 accesible para laptops, celulares y tablets)
 db.initDatabase().then(() => {
   const server = app.listen(PORT, '0.0.0.0', () => {
     const os = require('os');
     const interfaces = os.networkInterfaces();
-    let localIp = '127.0.0.1';
+    const networkIps = [];
 
     for (const name of Object.keys(interfaces)) {
       for (const iface of interfaces[name]) {
         if (iface.family === 'IPv4' && !iface.internal) {
-          localIp = iface.address;
-          break;
+          networkIps.push({ name, address: iface.address });
         }
       }
     }
 
+    // Ordenar para dar prioridad a 192.168.X.X y 10.X.X.X
+    networkIps.sort((a, b) => {
+      if (a.address.startsWith('192.168.')) return -1;
+      if (b.address.startsWith('192.168.')) return 1;
+      if (a.address.startsWith('10.')) return -1;
+      if (b.address.startsWith('10.')) return 1;
+      return 0;
+    });
+
+    const primaryIp = networkIps.length > 0 ? networkIps[0].address : '127.0.0.1';
+
     console.log(`================================================================`);
     console.log(` CRMComercial - IB SYSTEM S.R.L. (Proyecto de Posgrado)`);
-    console.log(` Servidor Express activo en red local:`);
-    console.log(` Localhost:      http://localhost:${PORT}`);
-    console.log(` Red Local (IP): http://${localIp}:${PORT} (celulares / tablets)`);
+    console.log(` Servidor Express activo en red local (0.0.0.0):`);
+    console.log(` • Localhost:      http://localhost:${PORT}`);
+    networkIps.forEach((n) => {
+      console.log(` • Red Local (${n.name}): http://${n.address}:${PORT}`);
+    });
+    if (networkIps.length === 0) {
+      console.log(` • Red Local (IP): http://${primaryIp}:${PORT}`);
+    }
+    console.log(` ----------------------------------------------------------------`);
+    console.log(` Acceso desde otras Laptops / Celulares:`);
+    console.log(`   http://${primaryIp}:${PORT}`);
+    console.log(` Nota Firewall Windows: Si otra laptop no conecta, permite el puerto`);
+    console.log(`   3000 TCP ejecutando en CMD como Administrador:`);
+    console.log(`   netsh advfirewall firewall add rule name="CRMComercial" dir=in action=allow protocol=TCP localport=${PORT}`);
     console.log(` Base de Datos:     ${db.isUsingMySQL() ? 'MySQL 8.0 Conectado' : 'Motor JSON Persistente Activo'}`);
     console.log(` Frontend:          HTML5, CSS3, JavaScript Puro (Vanilla)`);
     console.log(` Migración MySQL:   npm run migrate:mysql | GET /api/migrate/download-sql`);
